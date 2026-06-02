@@ -1,0 +1,27 @@
+{
+  "refs": [
+    {
+      "author": "a",
+      "title": "a",
+      "year": "",
+      "publisher": "",
+      "translator": "",
+      "isbnDoi": "",
+      "language": "fr",
+      "notes": "",
+      "id": "1752406f-8b61-44f9-b5e2-7611044d5da1",
+      "createdAt": "2026-06-02T04:36:12.989Z"
+    }
+  ],
+  "excerpts": [
+    {
+      "referenceId": "1752406f-8b61-44f9-b5e2-7611044d5da1",
+      "quote": "test",
+      "page": "",
+      "notes": "",
+      "tags": [],
+      "id": "d58db347-20c8-4689-8c51-7e22391f6a6d",
+      "createdAt": "2026-06-02T04:36:26.331Z"
+    }
+  ]
+}

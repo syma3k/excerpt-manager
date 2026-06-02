@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抜書き管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f5ef;
+      --surface:   #ffffff;
+      --sidebar:   #efece3;
+      --border:    #ddd8cc;
+      --text:      #2c2c2c;
+      --muted:     #8a8a8a;
+      --accent:    #4a6fa5;
+      --accent-h:  #3a5f95;
+      --danger:    #b03030;
+      --tag-bg:    #e4ede4;
+      --tag-fg:    #2e5c2e;
+      --sidebar-w: 264px;
+      --serif:     Georgia, 'Hiragino Mincho ProN', serif;
+      --sans:      -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Meiryo', sans-serif;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      height: 46px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    .app-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+      margin-right: 20px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 0 14px;
+      height: 46px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: var(--sans);
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active  { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── File status ── */
+    .file-banner {
+      background: #fffbe6;
+      border-bottom: 1px solid #e0cf70;
+      padding: 7px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #5a4400;
+      flex-shrink: 0;
+    }
+
+    .file-status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .file-status-chip.open {
+      color: #2a5a2a;
+      background: #eef6ee;
+      border-color: #9ecf9e;
+    }
+
+    /* ── Views ── */
+    .view { display: none; flex: 1; overflow: hidden; }
+    .view.active { display: flex; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 18px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-section { display: flex; flex-direction: column; gap: 7px; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .search-input, .filter-select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--sans);
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+    }
+    .search-input:focus, .filter-select:focus { border-color: var(--accent); }
+
+    .tag-filter-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .tag-chip {
+      padding: 3px 9px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      transition: all .15s;
+    }
+    .tag-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tag-chip:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+    .sidebar-stats { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Main ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .toolbar {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-spacer { flex: 1; }
+
+    .result-count { font-size: 12px; color: var(--muted); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 6px 13px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--sans);
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .btn-primary  { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover  { background: var(--accent-h); border-color: var(--accent-h); }
+    .btn-ghost    { background: none; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover    { border-color: var(--accent); color: var(--accent); }
+    .btn-danger   { background: none; color: var(--danger); border-color: var(--danger); }
+    .btn-danger:hover   { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 4px 9px; font-size: 12px; }
+
+    /* ── Card list ── */
+    .cards-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 64px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      transition: box-shadow .15s, border-color .15s;
+    }
+    .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+    .card.selected { border-color: var(--accent); background: #f0f4fb; }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .card-checkbox {
+      margin-top: 1px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .card-ref {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 5px;
+      opacity: 0;
+      transition: opacity .15s;
+      flex-shrink: 0;
+    }
+    .card:hover .card-actions { opacity: 1; }
+
+    .card-quote {
+      font-family: var(--serif);
+      font-size: 14px;
+      line-height: 1.75;
+      border-left: 3px solid var(--border);
+      padding-left: 12px;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .card-notes {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .card-tags { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+
+    .tag {
+      padding: 2px 8px;
+      background: var(--tag-bg);
+      color: var(--tag-fg);
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .card-date { font-size: 11px; color: var(--muted); }
+
+    /* ── References View ── */
+    #refs-view { flex-direction: column; }
+
+    .refs-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ref-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      transition: box-shadow .15s;
+    }
+    .ref-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+    .ref-info { flex: 1; min-width: 0; }
+    .ref-title  { font-size: 14px; font-weight: 700; }
+    .ref-author { font-size: 13px; color: var(--accent); margin-top: 3px; }
+    .ref-meta   { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .ref-note   { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 3px; }
+
+    .ref-badge {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2px 10px;
+      white-space: nowrap;
+      align-self: flex-start;
+    }
+
+    .ref-actions { display: flex; gap: 5px; flex-shrink: 0; align-self: flex-start; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 24px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 12px 48px rgba(0,0,0,.2);
+    }
+
+    .modal-title { font-size: 16px; font-weight: 700; }
+
+    .form-body { display: flex; flex-direction: column; gap: 13px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .form-label .req { color: var(--danger); margin-left: 2px; }
+
+    .form-input, .form-select, .form-textarea {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: var(--sans);
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+
+    .form-textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+    .form-textarea.quote {
+      min-height: 110px;
+      font-family: var(--serif);
+      font-size: 14px;
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Tag input widget */
+    .tag-widget {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+      background: var(--surface);
+      cursor: text;
+      transition: border-color .15s;
+      min-height: 38px;
+      position: relative;
+    }
+    .tag-widget:focus-within { border-color: var(--accent); }
+
+    .tag-removable {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 8px;
+      background: var(--tag-bg);
+      color: var(--tag-fg);
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tag-x {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--tag-fg);
+      font-size: 13px;
+      line-height: 1;
+      padding: 0;
+      opacity: .6;
+    }
+    .tag-x:hover { opacity: 1; }
+
+    .tag-input-field {
+      border: none;
+      outline: none;
+      font-size: 13px;
+      font-family: var(--sans);
+      flex: 1;
+      min-width: 80px;
+      background: transparent;
+    }
+
+    .tag-dropdown {
+      position: absolute;
+      top: calc(100% + 3px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+      max-height: 140px;
+      overflow-y: auto;
+      z-index: 300;
+      display: none;
+    }
+
+    .tag-drop-item {
+      padding: 7px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .tag-drop-item:hover { background: var(--bg); }
+
+    /* Modal footer */
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    /* Export */
+    .export-area {
+      width: 100%;
+      min-height: 280px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      resize: vertical;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #222;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .2s, transform .2s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <span class="app-title">抜書き管理</span>
+  <button class="tab-btn active" data-tab="cards">カード一覧</button>
+  <button class="tab-btn" data-tab="refs">文献管理</button>
+  <div style="flex:1"></div>
+  <div id="file-status-area" style="display:flex;align-items:center;gap:6px"></div>
+</header>
+
+<!-- ══ FILE BANNER ══ -->
+<div id="file-banner" class="file-banner" style="display:none"></div>
+
+<!-- ══ CARDS VIEW ══ -->
+<div id="cards-view" class="view active">
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="section-label">全文検索</div>
+      <input type="search" class="search-input" id="search-input" placeholder="引用文・メモを検索…">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">文献で絞り込み</div>
+      <select class="filter-select" id="ref-filter">
+        <option value="">すべての文献</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">タグで絞り込み</div>
+      <div class="tag-filter-list" id="tag-filter-list">
+        <span style="font-size:12px;color:var(--muted)">タグなし</span>
+      </div>
+    </div>
+
+    <div class="sidebar-stats" id="sidebar-stats"></div>
+  </aside>
+
+  <div class="main">
+    <div class="toolbar">
+      <span class="result-count" id="card-count"></span>
+      <div class="toolbar-spacer"></div>
+      <button class="btn btn-ghost" id="json-import-btn" style="display:none">↑ インポート</button>
+      <button class="btn btn-ghost" id="json-export-btn" style="display:none">↓ エクスポート</button>
+      <button class="btn btn-ghost" id="export-btn">↓ Markdownエクスポート</button>
+      <button class="btn btn-primary" id="new-card-btn">＋ カード作成</button>
+    </div>
+    <div class="cards-list" id="cards-list"></div>
+  </div>
+</div>
+
+<!-- ══ REFERENCES VIEW ══ -->
+<div id="refs-view" class="view">
+  <div class="toolbar">
+    <input type="search" class="search-input" id="refs-search" placeholder="著者・タイトルで検索…" style="max-width:300px">
+    <div class="toolbar-spacer"></div>
+    <button class="btn btn-primary" id="new-ref-btn">＋ 文献を追加</button>
+  </div>
+  <div class="refs-list" id="refs-list"></div>
+</div>
+
+<!-- ══ CARD MODAL ══ -->
+<div class="modal-overlay" id="card-modal">
+  <div class="modal">
+    <div class="modal-title" id="card-modal-title">カード作成</div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label">引用元文献<span class="req">*</span></label>
+        <select class="form-select" id="c-ref"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">引用文<span class="req">*</span></label>
+        <textarea class="form-textarea quote" id="c-quote" placeholder="引用テキストを入力…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">ページ</label>
+          <input type="text" class="form-input" id="c-page" placeholder="例: 42、42–43">
+        </div>
+        <div class="form-group" style="position:relative">
+          <label class="form-label">タグ</label>
+          <div class="tag-widget" id="tag-widget">
+            <input type="text" class="tag-input-field" id="tag-field" placeholder="入力→ Enter で追加">
+          </div>
+          <div class="tag-dropdown" id="tag-dropdown"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ</label>
+        <textarea class="form-textarea" id="c-notes" placeholder="解釈・備考など…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="card-cancel">キャンセル</button>
+      <button class="btn btn-primary" id="card-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REFERENCE MODAL ══ -->
+<div class="modal-overlay" id="ref-modal">
+  <div class="modal">
+    <div class="modal-title" id="ref-modal-title">文献を追加</div>
+    <div class="form-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">著者名<span class="req">*</span></label>
+          <input type="text" class="form-input" id="r-author" placeholder="著者名">
+        </div>
+        <div class="form-group">
+          <label class="form-label">言語</label>
+          <select class="form-select" id="r-lang">
+            <option value="">—</option>
+            <option value="ja">日本語</option>
+            <option value="fr">フランス語</option>
+            <option value="en">英語</option>
+            <option value="de">ドイツ語</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">タイトル<span class="req">*</span></label>
+        <input type="text" class="form-input" id="r-title" placeholder="書籍・論文タイトル">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">出版年</label>
+          <input type="text" class="form-input" id="r-year" placeholder="例: 2020">
+        </div>
+        <div class="form-group">
+          <label class="form-label">出版社・雑誌名</label>
+          <input type="text" class="form-input" id="r-publisher" placeholder="出版社または雑誌名">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">翻訳者・編者</label>
+          <input type="text" class="form-input" id="r-translator" placeholder="氏名">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ISBN / DOI</label>
+          <input type="text" class="form-input" id="r-isbn" placeholder="ISBN または DOI">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ</label>
+        <textarea class="form-textarea" id="r-notes" placeholder="備考など…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="ref-cancel">キャンセル</button>
+      <button class="btn btn-primary" id="ref-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EXPORT MODAL ══ -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal" style="max-width:660px">
+    <div class="modal-title">Markdownエクスポート</div>
+    <div class="form-body">
+      <p style="font-size:12px;color:var(--muted)" id="export-info"></p>
+      <textarea class="export-area" id="export-text" readonly spellcheck="false"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="export-close">閉じる</button>
+      <button class="btn btn-primary" id="export-copy">クリップボードにコピー</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- hidden file input for JSON import -->
+<input type="file" id="json-import-input" accept=".json" style="display:none">
+
+<script>
+'use strict';
+
+/* ─── Utilities ─── */
+function uid() {
+  return crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtDate(iso) { return iso ? iso.slice(0, 10) : ''; }
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const Y = d.getFullYear();
+  const M = String(d.getMonth() + 1).padStart(2, '0');
+  const D = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${Y}-${M}-${D} ${h}:${m}`;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ─── Data layer ─── */
+const DB = (() => {
+  let refs = [];
+  let excerpts = [];
+  let fileHandle = null;
+
+  const API_OK = typeof window.showOpenFilePicker === 'function';
+  // 'none' | 'prompt' | 'open' | 'error' | 'no-api'
+  let status = 'none';
+
+  /* IndexedDB – persist file handle across sessions */
+  let _idb = null;
+  async function getIDB() {
+    if (_idb) return _idb;
+    _idb = await new Promise((res, rej) => {
+      const r = indexedDB.open('em-fs', 1);
+      r.onupgradeneeded = e => e.target.result.createObjectStore('fs');
+      r.onsuccess = e => res(e.target.result);
+      r.onerror = () => rej(r.error);
+    });
+    return _idb;
+  }
+  async function idbGet(key) {
+    try {
+      const db = await getIDB();
+      return await new Promise((res, rej) => {
+        const tx = db.transaction('fs', 'readonly');
+        const r = tx.objectStore('fs').get(key);
+        r.onsuccess = () => res(r.result ?? null);
+        r.onerror = () => rej(r.error);
+      });
+    } catch { return null; }
+  }
+  async function idbPut(key, val) {
+    try {
+      const db = await getIDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction('fs', 'readwrite');
+        tx.objectStore('fs').put(val, key);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+    } catch {}
+  }
+  async function idbDel(key) {
+    try {
+      const db = await getIDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction('fs', 'readwrite');
+        tx.objectStore('fs').delete(key);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+    } catch {}
+  }
+
+  /* File I/O */
+  async function readFile(h) {
+    const file = await h.getFile();
+    const text = await file.text();
+    if (!text.trim()) { refs = []; excerpts = []; return; }
+    const d = JSON.parse(text);
+    refs     = Array.isArray(d.refs)     ? d.refs     : [];
+    excerpts = Array.isArray(d.excerpts) ? d.excerpts : [];
+  }
+
+  async function writeFile() {
+    if (!fileHandle) return;
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify({ refs, excerpts }, null, 2));
+    await w.close();
+  }
+
+  /* localStorage fallback */
+  function loadLS() {
+    try { refs     = JSON.parse(localStorage.getItem('em_refs'))     || []; } catch { refs = []; }
+    try { excerpts = JSON.parse(localStorage.getItem('em_excerpts')) || []; } catch { excerpts = []; }
+  }
+  function saveLS() {
+    localStorage.setItem('em_refs',     JSON.stringify(refs));
+    localStorage.setItem('em_excerpts', JSON.stringify(excerpts));
+  }
+
+  /* Unified save: always backup to LS, write file when handle is open */
+  async function save() {
+    saveLS();
+    if (!fileHandle) return;
+    try {
+      await writeFile();
+    } catch (e) {
+      fileHandle = null;
+      status = 'error';
+      await idbDel('h');
+      document.dispatchEvent(new CustomEvent('db:status'));
+      toast('ファイルへの書き込みに失敗しました。ファイルを再度開いてください。');
+    }
+  }
+
+  return {
+    get apiOK()    { return API_OK; },
+    get fileStatus(){ return status; },
+    get fileName() { return fileHandle?.name ?? null; },
+
+    async init() {
+      if (!API_OK) {
+        loadLS();
+        status = 'no-api';
+        return;
+      }
+      const h = await idbGet('h');
+      if (!h) {
+        loadLS();
+        status = 'none';
+        return;
+      }
+      let perm;
+      try { perm = await h.queryPermission({ mode: 'readwrite' }); }
+      catch { await idbDel('h'); loadLS(); status = 'none'; return; }
+
+      if (perm === 'granted') {
+        fileHandle = h;
+        try {
+          await readFile(h);
+          status = 'open';
+        } catch (e) {
+          if (e.name === 'NotFoundError') {
+            fileHandle = null;
+            await idbDel('h');
+            loadLS();
+            status = 'none';
+          } else if (e instanceof SyntaxError) {
+            refs = []; excerpts = [];
+            status = 'open';
+            await writeFile();
+          } else {
+            fileHandle = null;
+            loadLS();
+            status = 'error';
+          }
+        }
+      } else if (perm === 'prompt') {
+        fileHandle = h;
+        loadLS();
+        status = 'prompt';
+      } else {
+        await idbDel('h');
+        loadLS();
+        status = 'none';
+      }
+    },
+
+    async requestPermission() {
+      if (!fileHandle) return false;
+      try {
+        const perm = await fileHandle.requestPermission({ mode: 'readwrite' });
+        if (perm === 'granted') {
+          await readFile(fileHandle);
+          status = 'open';
+          document.dispatchEvent(new CustomEvent('db:status'));
+          return true;
+        }
+      } catch {}
+      return false;
+    },
+
+    async openFile() {
+      try {
+        const [h] = await window.showOpenFilePicker({
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+          multiple: false,
+        });
+        await h.requestPermission({ mode: 'readwrite' });
+        fileHandle = h;
+        await idbPut('h', h);
+        try { await readFile(h); } catch { refs = []; excerpts = []; }
+        status = 'open';
+        document.dispatchEvent(new CustomEvent('db:status'));
+        return true;
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error(e);
+        return false;
+      }
+    },
+
+    async newFile() {
+      try {
+        const h = await window.showSaveFilePicker({
+          suggestedName: 'data.json',
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+        });
+        fileHandle = h;
+        await idbPut('h', h);
+        refs = []; excerpts = [];
+        await writeFile();
+        status = 'open';
+        document.dispatchEvent(new CustomEvent('db:status'));
+        return true;
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error(e);
+        return false;
+      }
+    },
+
+    async detach() {
+      fileHandle = null;
+      await idbDel('h');
+      status = 'none';
+      document.dispatchEvent(new CustomEvent('db:status'));
+    },
+
+    exportJSON() {
+      return JSON.stringify({ refs, excerpts }, null, 2);
+    },
+
+    async importJSON(text) {
+      const d = JSON.parse(text);
+      refs     = Array.isArray(d.refs)     ? d.refs     : [];
+      excerpts = Array.isArray(d.excerpts) ? d.excerpts : [];
+      await save();
+    },
+
+    /* Sync reads (in-memory) */
+    getRefs()  { return refs; },
+    getEx()    { return excerpts; },
+    allTags()  {
+      const s = new Set();
+      excerpts.forEach(e => (e.tags || []).forEach(t => s.add(t)));
+      return [...s].sort((a, b) => a.localeCompare(b, 'ja'));
+    },
+
+    /* Async writes */
+    async addRef(data) {
+      const rec = { ...data, id: uid(), createdAt: new Date().toISOString() };
+      refs.unshift(rec);
+      await save();
+      return rec;
+    },
+    async updateRef(id, data) {
+      const i = refs.findIndex(r => r.id === id);
+      if (i >= 0) refs[i] = { ...refs[i], ...data };
+      await save();
+    },
+    async deleteRef(id) {
+      refs = refs.filter(r => r.id !== id);
+      await save();
+    },
+    async addEx(data) {
+      const rec = { ...data, id: uid(), createdAt: new Date().toISOString() };
+      excerpts.unshift(rec);
+      await save();
+      return rec;
+    },
+    async updateEx(id, data) {
+      const i = excerpts.findIndex(e => e.id === id);
+      if (i >= 0) excerpts[i] = { ...excerpts[i], ...data };
+      await save();
+    },
+    async deleteEx(id) {
+      excerpts = excerpts.filter(e => e.id !== id);
+      await save();
+    },
+  };
+})();
+
+/* ─── File status UI ─── */
+function updateFileUI() {
+  const area   = document.getElementById('file-status-area');
+  const banner = document.getElementById('file-banner');
+  const impBtn = document.getElementById('json-import-btn');
+  const expBtn = document.getElementById('json-export-btn');
+  const st     = DB.fileStatus;
+
+  if (st === 'no-api') {
+    impBtn.style.display = '';
+    expBtn.style.display = '';
+    area.innerHTML = '';
+    banner.style.display = 'none';
+    return;
+  }
+
+  impBtn.style.display = 'none';
+  expBtn.style.display = 'none';
+
+  if (st === 'open') {
+    area.innerHTML =
+      `<span class="file-status-chip open">📄 ${esc(DB.fileName)}</span>` +
+      `<button class="btn btn-ghost btn-sm" id="hdr-detach">切断</button>`;
+    document.getElementById('hdr-detach').onclick = async () => {
+      if (confirm('ファイルの接続を解除しますか？データはブラウザに保持されます。')) {
+        await DB.detach();
+      }
+    };
+    banner.style.display = 'none';
+
+  } else if (st === 'prompt') {
+    const name = esc(DB.fileName ?? 'data.json');
+    area.innerHTML =
+      `<button class="btn btn-ghost btn-sm" id="hdr-permit">🔒 アクセスを許可</button>`;
+    document.getElementById('hdr-permit').onclick = async () => {
+      const ok = await DB.requestPermission();
+      if (ok) { renderCards(); }
+    };
+    banner.innerHTML =
+      `<span>前回使用したファイル「${name}」へのアクセス許可が必要です。</span>` +
+      `<button class="btn btn-ghost btn-sm" id="bnr-permit">アクセスを許可する</button>`;
+    document.getElementById('bnr-permit').onclick = async () => {
+      const ok = await DB.requestPermission();
+      if (ok) { renderCards(); }
+    };
+    banner.style.display = 'flex';
+
+  } else {
+    /* 'none' | 'error' */
+    const errMsg = st === 'error'
+      ? 'ファイルへの書き込みに失敗しました。'
+      : '';
+    area.innerHTML =
+      `<button class="btn btn-ghost btn-sm" id="hdr-open">📂 data.jsonを開く</button>` +
+      `<button class="btn btn-ghost btn-sm" id="hdr-new">新規作成</button>`;
+    document.getElementById('hdr-open').onclick = async () => {
+      await DB.openFile();
+      renderCards();
+    };
+    document.getElementById('hdr-new').onclick = async () => {
+      await DB.newFile();
+      renderCards();
+    };
+    banner.innerHTML =
+      `<span>${errMsg}データファイルが選択されていません。データはブラウザに一時保存されます。</span>` +
+      `<button class="btn btn-ghost btn-sm" id="bnr-open">📂 data.jsonを開く</button>` +
+      `<button class="btn btn-ghost btn-sm" id="bnr-new">新規作成</button>`;
+    document.getElementById('bnr-open').onclick = async () => {
+      await DB.openFile();
+      renderCards();
+    };
+    document.getElementById('bnr-new').onclick = async () => {
+      await DB.newFile();
+      renderCards();
+    };
+    banner.style.display = 'flex';
+  }
+}
+
+/* ─── App state ─── */
+const S = {
+  q: '',
+  refFilter: '',
+  tagFilter: new Set(),
+  selected: new Set(),
+  editExId: null,
+  editRefId: null,
+  cardTags: [],
+};
+
+/* ─── Tab switching ─── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    const id = btn.dataset.tab === 'cards' ? 'cards-view' : 'refs-view';
+    document.getElementById(id).classList.add('active');
+    if (btn.dataset.tab === 'refs') renderRefs();
+  });
+});
+
+/* ─── Filter & render cards ─── */
+function filteredEx() {
+  let list = DB.getEx();
+  if (S.q) {
+    const q = S.q.toLowerCase();
+    list = list.filter(e =>
+      (e.quote || '').toLowerCase().includes(q) ||
+      (e.notes || '').toLowerCase().includes(q)
+    );
+  }
+  if (S.refFilter) list = list.filter(e => e.referenceId === S.refFilter);
+  if (S.tagFilter.size > 0)
+    list = list.filter(e => [...S.tagFilter].every(t => (e.tags || []).includes(t)));
+  return list;
+}
+
+function refMap() {
+  const m = {};
+  DB.getRefs().forEach(r => { m[r.id] = r; });
+  return m;
+}
+
+function refLabel(ref, page) {
+  if (!ref) return page ? `（文献不明） p.${page}` : '（文献不明）';
+  const p = page ? ` p.${page}` : '';
+  return `${ref.author}『${ref.title}』${p}`;
+}
+
+function renderCards() {
+  const list  = filteredEx();
+  const total = DB.getEx().length;
+  const rm    = refMap();
+  const el    = document.getElementById('cards-list');
+
+  document.getElementById('card-count').textContent =
+    total === list.length ? `${total} 件` : `${list.length} 件 / ${total} 件`;
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="icon">📚</div>
+      <p>${total === 0
+          ? 'まだカードがありません。「カード作成」から始めましょう。'
+          : '条件に一致するカードがありません。'}</p>
+    </div>`;
+    renderSidebar();
+    return;
+  }
+
+  el.innerHTML = list.map(e => {
+    const ref  = rm[e.referenceId];
+    const lbl  = refLabel(ref, e.page);
+    const tags = (e.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('');
+    const sel  = S.selected.has(e.id);
+    return `
+    <div class="card${sel ? ' selected' : ''}" data-id="${esc(e.id)}">
+      <div class="card-header">
+        <input type="checkbox" class="card-checkbox" data-id="${esc(e.id)}" ${sel ? 'checked' : ''}>
+        <span class="card-ref">${esc(lbl)}</span>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openCardModal('${esc(e.id)}')">編集</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCard('${esc(e.id)}')">削除</button>
+        </div>
+      </div>
+      <div class="card-quote">${esc(e.quote)}</div>
+      ${e.notes ? `<div class="card-notes">${esc(e.notes)}</div>` : ''}
+      <div class="card-footer">
+        <div class="card-tags">${tags}</div>
+        <span class="card-date">${fmtDateTime(e.createdAt)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.card-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.dataset.id;
+      cb.checked ? S.selected.add(id) : S.selected.delete(id);
+      cb.closest('.card').classList.toggle('selected', cb.checked);
+    });
+  });
+
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const refs = DB.getRefs();
+  const rfSel = document.getElementById('ref-filter');
+  const cur   = rfSel.value;
+  rfSel.innerHTML = '<option value="">すべての文献</option>' +
+    refs.map(r => `<option value="${esc(r.id)}"${r.id === cur ? ' selected' : ''}>${esc(r.author)}『${esc(r.title)}』</option>`).join('');
+
+  const tags = DB.allTags();
+  const tfEl = document.getElementById('tag-filter-list');
+  if (tags.length === 0) {
+    tfEl.innerHTML = '<span style="font-size:12px;color:var(--muted)">タグなし</span>';
+  } else {
+    tfEl.innerHTML = tags.map(t =>
+      `<span class="tag-chip${S.tagFilter.has(t) ? ' active' : ''}" data-tag="${esc(t)}">#${esc(t)}</span>`
+    ).join('');
+    tfEl.querySelectorAll('.tag-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const t = chip.dataset.tag;
+        S.tagFilter.has(t) ? S.tagFilter.delete(t) : S.tagFilter.add(t);
+        renderCards();
+      });
+    });
+  }
+
+  const exTotal  = DB.getEx().length;
+  const refTotal = refs.length;
+  const tagTotal = tags.length;
+  document.getElementById('sidebar-stats').textContent =
+    `文献 ${refTotal} 件 · カード ${exTotal} 件 · タグ ${tagTotal} 件`;
+}
+
+document.getElementById('search-input').addEventListener('input', e => {
+  S.q = e.target.value;
+  renderCards();
+});
+
+document.getElementById('ref-filter').addEventListener('change', e => {
+  S.refFilter = e.target.value;
+  renderCards();
+});
+
+/* ─── Delete card ─── */
+async function deleteCard(id) {
+  if (!confirm('このカードを削除しますか？')) return;
+  await DB.deleteEx(id);
+  S.selected.delete(id);
+  renderCards();
+  toast('カードを削除しました');
+}
+
+/* ─── Card modal ─── */
+function openCardModal(editId) {
+  S.editExId = editId || null;
+  S.cardTags = [];
+
+  const refs   = DB.getRefs();
+  const refSel = document.getElementById('c-ref');
+  refSel.innerHTML = '<option value="">文献を選択…</option>' +
+    refs.map(r => `<option value="${esc(r.id)}">${esc(r.author)}『${esc(r.title)}』</option>`).join('');
+
+  if (editId) {
+    const ex = DB.getEx().find(e => e.id === editId);
+    if (!ex) return;
+    document.getElementById('card-modal-title').textContent = 'カード編集';
+    refSel.value = ex.referenceId || '';
+    document.getElementById('c-quote').value = ex.quote || '';
+    document.getElementById('c-page').value  = ex.page  || '';
+    document.getElementById('c-notes').value = ex.notes || '';
+    S.cardTags = [...(ex.tags || [])];
+  } else {
+    document.getElementById('card-modal-title').textContent = 'カード作成';
+    refSel.value = '';
+    ['c-quote', 'c-page', 'c-notes'].forEach(id => document.getElementById(id).value = '');
+    S.cardTags = [];
+  }
+
+  renderTagWidget();
+  document.getElementById('card-modal').classList.add('open');
+  setTimeout(() => document.getElementById('c-quote').focus(), 80);
+}
+
+function closeCardModal() {
+  document.getElementById('card-modal').classList.remove('open');
+  hideDropdown();
+}
+
+/* Tag widget */
+function renderTagWidget() {
+  const widget = document.getElementById('tag-widget');
+  const field  = document.getElementById('tag-field');
+  widget.querySelectorAll('.tag-removable').forEach(el => el.remove());
+  S.cardTags.forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'tag-removable';
+    span.dataset.tag = t;
+    span.innerHTML = `#${esc(t)}<button class="tag-x" type="button" aria-label="削除">×</button>`;
+    span.querySelector('.tag-x').addEventListener('click', () => {
+      S.cardTags = S.cardTags.filter(x => x !== t);
+      renderTagWidget();
+    });
+    widget.insertBefore(span, field);
+  });
+}
+
+function addTag(raw) {
+  const t = raw.trim();
+  if (!t || S.cardTags.includes(t)) return;
+  S.cardTags.push(t);
+  renderTagWidget();
+  document.getElementById('tag-field').value = '';
+  hideDropdown();
+}
+
+function hideDropdown() {
+  document.getElementById('tag-dropdown').style.display = 'none';
+}
+
+function showDropdown(q) {
+  const all = DB.allTags().filter(t => t.toLowerCase().includes(q.toLowerCase()) && !S.cardTags.includes(t));
+  const el  = document.getElementById('tag-dropdown');
+  if (!all.length || !q) { hideDropdown(); return; }
+  el.innerHTML = all.map(t => `<div class="tag-drop-item" data-tag="${esc(t)}">#${esc(t)}</div>`).join('');
+  el.querySelectorAll('.tag-drop-item').forEach(item => {
+    item.addEventListener('mousedown', e => { e.preventDefault(); addTag(item.dataset.tag); });
+  });
+  el.style.display = 'block';
+}
+
+document.getElementById('tag-field').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ',') && !e.isComposing) { e.preventDefault(); addTag(e.target.value); }
+  else if (e.key === 'Backspace' && !e.target.value && S.cardTags.length) {
+    S.cardTags.pop();
+    renderTagWidget();
+  }
+});
+document.getElementById('tag-field').addEventListener('input', e => showDropdown(e.target.value));
+document.getElementById('tag-widget').addEventListener('click', () => document.getElementById('tag-field').focus());
+
+document.getElementById('card-cancel').addEventListener('click', closeCardModal);
+document.getElementById('card-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCardModal(); });
+document.getElementById('card-save').addEventListener('click', async () => {
+  const tf = document.getElementById('tag-field');
+  if (tf.value.trim()) addTag(tf.value);
+
+  const quote = document.getElementById('c-quote').value.trim();
+  const refId = document.getElementById('c-ref').value;
+  if (!quote) { alert('引用文を入力してください。'); return; }
+  if (!refId) { alert('文献を選択してください。'); return; }
+
+  const data = {
+    referenceId: refId,
+    quote,
+    page:  document.getElementById('c-page').value.trim(),
+    notes: document.getElementById('c-notes').value.trim(),
+    tags:  [...S.cardTags],
+  };
+
+  if (S.editExId) { await DB.updateEx(S.editExId, data); toast('カードを更新しました'); }
+  else            { await DB.addEx(data);                 toast('カードを作成しました'); }
+
+  closeCardModal();
+  renderCards();
+});
+
+document.getElementById('new-card-btn').addEventListener('click', () => {
+  if (DB.getRefs().length === 0) {
+    if (confirm('文献が未登録です。文献管理画面へ移動しますか？'))
+      document.querySelector('[data-tab="refs"]').click();
+    return;
+  }
+  openCardModal();
+});
+
+/* ─── References ─── */
+const LANG = { ja:'日本語', fr:'フランス語', en:'英語', de:'ドイツ語', other:'その他' };
+
+function renderRefs(q) {
+  q = q ?? document.getElementById('refs-search').value;
+  let refs = DB.getRefs();
+  if (q) {
+    const lq = q.toLowerCase();
+    refs = refs.filter(r =>
+      (r.author    || '').toLowerCase().includes(lq) ||
+      (r.title     || '').toLowerCase().includes(lq) ||
+      (r.publisher || '').toLowerCase().includes(lq)
+    );
+  }
+
+  const exAll = DB.getEx();
+  const el    = document.getElementById('refs-list');
+
+  if (refs.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="icon">📖</div>
+      <p>${DB.getRefs().length === 0
+          ? '文献がありません。「文献を追加」から登録してください。'
+          : '条件に一致する文献がありません。'}</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = refs.map(r => {
+    const cnt  = exAll.filter(e => e.referenceId === r.id).length;
+    const meta = [
+      r.year        && `${r.year}年`,
+      r.publisher,
+      r.translator  && `翻訳/編: ${r.translator}`,
+      r.isbnDoi,
+      r.language    && LANG[r.language],
+    ].filter(Boolean);
+
+    return `
+    <div class="ref-card">
+      <div class="ref-info">
+        <div class="ref-title">${esc(r.title)}</div>
+        <div class="ref-author">${esc(r.author)}</div>
+        ${meta.length ? `<div class="ref-meta">${meta.map(esc).map(s => `<span>${s}</span>`).join('')}</div>` : ''}
+        ${r.notes ? `<div class="ref-note">${esc(r.notes)}</div>` : ''}
+      </div>
+      <span class="ref-badge">${cnt} 件の抜書き</span>
+      <div class="ref-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openRefModal('${esc(r.id)}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRef('${esc(r.id)}', ${cnt})">削除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('refs-search').addEventListener('input', e => renderRefs(e.target.value));
+
+async function deleteRef(id, cnt) {
+  const msg = cnt > 0
+    ? `この文献には ${cnt} 件の抜書きがあります。\n文献を削除しても抜書きは残ります（文献情報が表示されなくなります）。\n削除しますか？`
+    : 'この文献を削除しますか？';
+  if (!confirm(msg)) return;
+  await DB.deleteRef(id);
+  renderRefs();
+  renderSidebar();
+  toast('文献を削除しました');
+}
+
+/* ─── Reference modal ─── */
+function openRefModal(editId) {
+  S.editRefId = editId || null;
+  const fields = ['r-author','r-title','r-year','r-publisher','r-translator','r-isbn','r-lang','r-notes'];
+
+  if (editId) {
+    const r = DB.getRefs().find(x => x.id === editId);
+    if (!r) return;
+    document.getElementById('ref-modal-title').textContent = '文献を編集';
+    document.getElementById('r-author').value     = r.author      || '';
+    document.getElementById('r-title').value      = r.title       || '';
+    document.getElementById('r-year').value       = r.year        || '';
+    document.getElementById('r-publisher').value  = r.publisher   || '';
+    document.getElementById('r-translator').value = r.translator  || '';
+    document.getElementById('r-isbn').value       = r.isbnDoi     || '';
+    document.getElementById('r-lang').value       = r.language    || '';
+    document.getElementById('r-notes').value      = r.notes       || '';
+  } else {
+    document.getElementById('ref-modal-title').textContent = '文献を追加';
+    fields.forEach(id => document.getElementById(id).value = '');
+  }
+
+  document.getElementById('ref-modal').classList.add('open');
+  setTimeout(() => document.getElementById('r-author').focus(), 80);
+}
+
+function closeRefModal() {
+  document.getElementById('ref-modal').classList.remove('open');
+}
+
+document.getElementById('new-ref-btn').addEventListener('click', () => openRefModal());
+document.getElementById('ref-cancel').addEventListener('click', closeRefModal);
+document.getElementById('ref-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeRefModal(); });
+document.getElementById('ref-save').addEventListener('click', async () => {
+  const author = document.getElementById('r-author').value.trim();
+  const title  = document.getElementById('r-title').value.trim();
+  if (!author) { alert('著者名を入力してください。'); return; }
+  if (!title)  { alert('タイトルを入力してください。'); return; }
+
+  const data = {
+    author,
+    title,
+    year:       document.getElementById('r-year').value.trim(),
+    publisher:  document.getElementById('r-publisher').value.trim(),
+    translator: document.getElementById('r-translator').value.trim(),
+    isbnDoi:    document.getElementById('r-isbn').value.trim(),
+    language:   document.getElementById('r-lang').value,
+    notes:      document.getElementById('r-notes').value.trim(),
+  };
+
+  if (S.editRefId) { await DB.updateRef(S.editRefId, data); toast('文献を更新しました'); }
+  else             { await DB.addRef(data);                  toast('文献を追加しました'); }
+
+  closeRefModal();
+  renderRefs();
+  renderSidebar();
+});
+
+/* ─── Markdown export ─── */
+document.getElementById('export-btn').addEventListener('click', () => {
+  const visible  = filteredEx();
+  const toExport = S.selected.size > 0
+    ? visible.filter(e => S.selected.has(e.id))
+    : visible;
+
+  if (toExport.length === 0) {
+    alert('エクスポートするカードがありません。');
+    return;
+  }
+
+  const rm = refMap();
+  const md = toExport.map(e => {
+    const ref    = rm[e.referenceId];
+    const author = ref ? ref.author : '';
+    const title  = ref ? ref.title  : '（文献不明）';
+    const page   = e.page ? `p.${e.page}` : '';
+    const header = [author, `『${title}』`, page].filter(Boolean).join('');
+    const tags   = (e.tags || []).map(t => `#${t}`).join(' ');
+
+    const lines = [
+      '---',
+      `**${header}**`,
+      '',
+      e.quote || '',
+    ];
+    if (e.notes) lines.push('', `> ${e.notes}`);
+    lines.push('');
+    if (tags) lines.push(`タグ：${tags}`);
+    lines.push(`記入日時：${fmtDate(e.createdAt)}`);
+    lines.push('---');
+    return lines.join('\n');
+  }).join('\n\n');
+
+  const info = S.selected.size > 0
+    ? `選択した ${toExport.length} 件をエクスポート`
+    : `表示中の ${toExport.length} 件をエクスポート（カードにチェックを入れると選択したものだけ出力できます）`;
+
+  document.getElementById('export-info').textContent = info;
+  document.getElementById('export-text').value = md;
+  document.getElementById('export-modal').classList.add('open');
+});
+
+document.getElementById('export-close').addEventListener('click', () =>
+  document.getElementById('export-modal').classList.remove('open'));
+document.getElementById('export-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('export-modal').classList.remove('open');
+});
+document.getElementById('export-copy').addEventListener('click', () => {
+  const text = document.getElementById('export-text').value;
+  navigator.clipboard
+    .writeText(text)
+    .then(()  => toast('クリップボードにコピーしました'))
+    .catch(()  => {
+      document.getElementById('export-text').select();
+      document.execCommand('copy');
+      toast('コピーしました');
+    });
+});
+
+/* ─── JSON import/export (fallback for browsers without File System Access API) ─── */
+document.getElementById('json-export-btn').addEventListener('click', () => {
+  const json = DB.exportJSON();
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('data.json をダウンロードしました');
+});
+
+document.getElementById('json-import-btn').addEventListener('click', () => {
+  document.getElementById('json-import-input').click();
+});
+
+document.getElementById('json-import-input').addEventListener('change', async function () {
+  const file = this.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    await DB.importJSON(text);
+    renderCards();
+    if (document.getElementById('refs-view').classList.contains('active')) renderRefs();
+    toast('データをインポートしました');
+  } catch {
+    alert('JSONファイルの読み込みに失敗しました。');
+  }
+  this.value = '';
+});
+
+/* ─── Global keyboard ─── */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  closeCardModal();
+  closeRefModal();
+  document.getElementById('export-modal').classList.remove('open');
+  hideDropdown();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#tag-widget') && !e.target.closest('#tag-dropdown'))
+    hideDropdown();
+});
+
+/* ─── db status change (fired from DB internals) ─── */
+document.addEventListener('db:status', () => {
+  updateFileUI();
+  renderCards();
+});
+
+/* ─── Boot ─── */
+(async () => {
+  await DB.init();
+  updateFileUI();
+  renderCards();
+})();
+</script>
+</body>
+</html>
