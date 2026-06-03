@@ -754,6 +754,31 @@ function toast(msg) {
   el._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+/* ─── Data versioning ─── */
+const DATA_VERSION = 1;
+
+function parseData(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { refs: [], excerpts: [], warning: null };
+  }
+  let r, e, warning = null;
+  if (raw.version === undefined) {
+    // バージョンなし（旧形式）→ v1 に自動変換
+    r = Array.isArray(raw.references) ? raw.references
+      : Array.isArray(raw.refs)       ? raw.refs : [];
+    e = Array.isArray(raw.excerpts) ? raw.excerpts : [];
+  } else if (raw.version === DATA_VERSION) {
+    r = Array.isArray(raw.references) ? raw.references : [];
+    e = Array.isArray(raw.excerpts)   ? raw.excerpts   : [];
+  } else {
+    warning = `未対応のバージョン (v${raw.version}) のデータです。このアプリは v${DATA_VERSION} に対応しています。データが正しく読み込めない場合があります。`;
+    r = Array.isArray(raw.references) ? raw.references
+      : Array.isArray(raw.refs)       ? raw.refs : [];
+    e = Array.isArray(raw.excerpts) ? raw.excerpts : [];
+  }
+  return { refs: r, excerpts: e, warning };
+}
+
 /* ─── Data layer ─── */
 const DB = (() => {
   let refs = [];
@@ -815,15 +840,15 @@ const DB = (() => {
     const file = await h.getFile();
     const text = await file.text();
     if (!text.trim()) { refs = []; excerpts = []; return; }
-    const d = JSON.parse(text);
-    refs     = Array.isArray(d.refs)     ? d.refs     : [];
-    excerpts = Array.isArray(d.excerpts) ? d.excerpts : [];
+    const { refs: r, excerpts: e, warning } = parseData(JSON.parse(text));
+    refs = r; excerpts = e;
+    if (warning) toast(warning);
   }
 
   async function writeFile() {
     if (!fileHandle) return;
     const w = await fileHandle.createWritable();
-    await w.write(JSON.stringify({ refs, excerpts }, null, 2));
+    await w.write(JSON.stringify({ version: DATA_VERSION, references: refs, excerpts }, null, 2));
     await w.close();
   }
 
@@ -965,13 +990,13 @@ const DB = (() => {
     },
 
     exportJSON() {
-      return JSON.stringify({ refs, excerpts }, null, 2);
+      return JSON.stringify({ version: DATA_VERSION, references: refs, excerpts }, null, 2);
     },
 
     async importJSON(text) {
-      const d = JSON.parse(text);
-      refs     = Array.isArray(d.refs)     ? d.refs     : [];
-      excerpts = Array.isArray(d.excerpts) ? d.excerpts : [];
+      const { refs: r, excerpts: e, warning } = parseData(JSON.parse(text));
+      refs = r; excerpts = e;
+      if (warning) toast(warning);
       await save();
     },
 
