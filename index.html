@@ -628,6 +628,8 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" id="card-cancel">キャンセル</button>
       <button class="btn btn-primary" id="card-save">保存</button>
+      <button class="btn btn-primary" id="card-save-continue" style="display:none">保存して続ける</button>
+      <button class="btn btn-primary" id="card-save-close" style="display:none">保存して閉じる</button>
     </div>
   </div>
 </div>
@@ -1131,6 +1133,7 @@ const S = {
   editExId: null,
   editRefId: null,
   cardTags: [],
+  fromRefs: false,
 };
 
 /* ─── Tab switching ─── */
@@ -1279,9 +1282,10 @@ async function deleteCard(id) {
 }
 
 /* ─── Card modal ─── */
-function openCardModal(editId) {
+function openCardModal(editId, presetRefId, fromRefs) {
   S.editExId = editId || null;
   S.cardTags = [];
+  S.fromRefs = !!fromRefs;
 
   const refs   = DB.getRefs();
   const refSel = document.getElementById('c-ref');
@@ -1299,10 +1303,16 @@ function openCardModal(editId) {
     S.cardTags = [...(ex.tags || [])];
   } else {
     document.getElementById('card-modal-title').textContent = 'カード作成';
-    refSel.value = '';
+    refSel.value = presetRefId || '';
     ['c-quote', 'c-page', 'c-notes'].forEach(id => document.getElementById(id).value = '');
     S.cardTags = [];
   }
+
+  const showNormal = !fromRefs;
+  document.getElementById('card-cancel').style.display       = showNormal ? '' : 'none';
+  document.getElementById('card-save').style.display         = showNormal ? '' : 'none';
+  document.getElementById('card-save-continue').style.display = showNormal ? 'none' : '';
+  document.getElementById('card-save-close').style.display    = showNormal ? 'none' : '';
 
   renderTagWidget();
   document.getElementById('card-modal').classList.add('open');
@@ -1366,16 +1376,14 @@ document.getElementById('tag-field').addEventListener('keydown', e => {
 document.getElementById('tag-field').addEventListener('input', e => showDropdown(e.target.value));
 document.getElementById('tag-widget').addEventListener('click', () => document.getElementById('tag-field').focus());
 
-document.getElementById('card-cancel').addEventListener('click', closeCardModal);
-document.getElementById('card-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCardModal(); });
-document.getElementById('card-save').addEventListener('click', async () => {
+async function collectAndSaveCard() {
   const tf = document.getElementById('tag-field');
   if (tf.value.trim()) addTag(tf.value);
 
   const quote = document.getElementById('c-quote').value.trim();
   const refId = document.getElementById('c-ref').value;
-  if (!quote) { alert('引用文を入力してください。'); return; }
-  if (!refId) { alert('文献を選択してください。'); return; }
+  if (!quote) { alert('引用文を入力してください。'); return null; }
+  if (!refId) { alert('文献を選択してください。'); return null; }
 
   const data = {
     referenceId: refId,
@@ -1388,8 +1396,29 @@ document.getElementById('card-save').addEventListener('click', async () => {
   if (S.editExId) { await DB.updateEx(S.editExId, data); toast('カードを更新しました'); }
   else            { await DB.addEx(data);                 toast('カードを作成しました'); }
 
+  return refId;
+}
+
+document.getElementById('card-cancel').addEventListener('click', closeCardModal);
+document.getElementById('card-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCardModal(); });
+document.getElementById('card-save').addEventListener('click', async () => {
+  const refId = await collectAndSaveCard();
+  if (!refId) return;
   closeCardModal();
   renderCards();
+});
+document.getElementById('card-save-continue').addEventListener('click', async () => {
+  const refId = await collectAndSaveCard();
+  if (!refId) return;
+  renderCards();
+  openCardModal(null, refId, true);
+});
+document.getElementById('card-save-close').addEventListener('click', async () => {
+  const refId = await collectAndSaveCard();
+  if (!refId) return;
+  closeCardModal();
+  renderCards();
+  renderRefs();
 });
 
 document.getElementById('new-card-btn').addEventListener('click', () => {
@@ -1449,6 +1478,7 @@ function renderRefs(q) {
       </div>
       <span class="ref-badge">${cnt} 件の抜書き</span>
       <div class="ref-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openCardModal(null,'${esc(r.id)}',true)">カード作成</button>
         <button class="btn btn-ghost btn-sm" onclick="openRefModal('${esc(r.id)}')">編集</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRef('${esc(r.id)}', ${cnt})">削除</button>
       </div>
