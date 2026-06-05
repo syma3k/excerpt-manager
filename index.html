@@ -346,6 +346,41 @@
 
     .ref-actions { display: flex; gap: 5px; flex-shrink: 0; align-self: flex-start; }
 
+    /* ── Type toggle ── */
+    .type-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      align-self: flex-start;
+    }
+    .type-btn {
+      padding: 6px 18px;
+      border: none;
+      background: var(--surface);
+      font-size: 13px;
+      font-family: var(--sans);
+      cursor: pointer;
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .type-btn + .type-btn { border-left: 1px solid var(--border); }
+    .type-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+    /* ── Ref type badge ── */
+    .ref-type-badge {
+      display: inline-block;
+      font-size: 11px;
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .ref-type-badge.book    { background: #e8f0e8; color: #2a5a2a; border: 1px solid #9ecf9e; }
+    .ref-type-badge.journal { background: #e8eef8; color: #2a3f7a; border: 1px solid #9eb0cf; }
+
+    .ref-section { display: flex; flex-direction: column; gap: 13px; }
+
     /* ── Modal ── */
     .modal-overlay {
       display: none;
@@ -639,6 +674,15 @@
   <div class="modal">
     <div class="modal-title" id="ref-modal-title">文献を追加</div>
     <div class="form-body">
+      <!-- 種別トグル -->
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">種別</span>
+        <div class="type-toggle" id="ref-type-toggle">
+          <button type="button" class="type-btn active" data-type="book">書籍</button>
+          <button type="button" class="type-btn" data-type="journal">雑誌論文</button>
+        </div>
+      </div>
+      <!-- 共通項目 -->
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">著者名<span class="req">*</span></label>
@@ -660,26 +704,55 @@
         <label class="form-label">タイトル<span class="req">*</span></label>
         <input type="text" class="form-input" id="r-title" placeholder="書籍・論文タイトル">
       </div>
-      <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">出版年</label>
+        <input type="text" class="form-input" id="r-year" placeholder="例: 2020">
+      </div>
+      <!-- 書籍のみ -->
+      <div id="r-book-fields" class="ref-section">
         <div class="form-group">
-          <label class="form-label">出版年</label>
-          <input type="text" class="form-input" id="r-year" placeholder="例: 2020">
+          <label class="form-label">出版社</label>
+          <input type="text" class="form-input" id="r-publisher" placeholder="出版社名">
         </div>
-        <div class="form-group">
-          <label class="form-label">出版社・雑誌名</label>
-          <input type="text" class="form-input" id="r-publisher" placeholder="出版社または雑誌名">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">翻訳者・編者</label>
+            <input type="text" class="form-input" id="r-translator" placeholder="氏名">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ISBN</label>
+            <input type="text" class="form-input" id="r-isbn" placeholder="ISBN">
+          </div>
         </div>
       </div>
-      <div class="form-row">
+      <!-- 雑誌論文のみ -->
+      <div id="r-journal-fields" class="ref-section" style="display:none">
         <div class="form-group">
-          <label class="form-label">翻訳者・編者</label>
-          <input type="text" class="form-input" id="r-translator" placeholder="氏名">
+          <label class="form-label">収録雑誌名</label>
+          <input type="text" class="form-input" id="r-journal-name" placeholder="雑誌名">
         </div>
-        <div class="form-group">
-          <label class="form-label">ISBN / DOI</label>
-          <input type="text" class="form-input" id="r-isbn" placeholder="ISBN または DOI">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">巻数</label>
+            <input type="text" class="form-input" id="r-volume" placeholder="例: 12">
+          </div>
+          <div class="form-group">
+            <label class="form-label">号数</label>
+            <input type="text" class="form-input" id="r-issue" placeholder="例: 3">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ページ</label>
+            <input type="text" class="form-input" id="r-pages" placeholder="例: pp.123-145">
+          </div>
+          <div class="form-group">
+            <label class="form-label">DOI</label>
+            <input type="text" class="form-input" id="r-doi" placeholder="例: 10.1234/example">
+          </div>
         </div>
       </div>
+      <!-- 共通 -->
       <div class="form-group">
         <label class="form-label">メモ</label>
         <textarea class="form-textarea" id="r-notes" placeholder="備考など…"></textarea>
@@ -757,15 +830,27 @@ function toast(msg) {
 }
 
 /* ─── Data versioning ─── */
-const DATA_VERSION = 1;
+const DATA_VERSION = 2;
+
+function migrateRef(r) {
+  if (!r.type) r.type = 'book';
+  if (!r.isbn && r.isbnDoi) r.isbn = r.isbnDoi;
+  r.isbn        = r.isbn        || '';
+  r.journalName = r.journalName || '';
+  r.volume      = r.volume      || '';
+  r.issue       = r.issue       || '';
+  r.pages       = r.pages       || '';
+  r.doi         = r.doi         || '';
+  return r;
+}
 
 function parseData(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { refs: [], excerpts: [], warning: null };
   }
   let r, e, warning = null;
-  if (raw.version === undefined) {
-    // バージョンなし（旧形式）→ v1 に自動変換
+  if (raw.version === undefined || raw.version === 1) {
+    // バージョンなし or v1 → v2 に自動変換
     r = Array.isArray(raw.references) ? raw.references
       : Array.isArray(raw.refs)       ? raw.refs : [];
     e = Array.isArray(raw.excerpts) ? raw.excerpts : [];
@@ -778,6 +863,7 @@ function parseData(raw) {
       : Array.isArray(raw.refs)       ? raw.refs : [];
     e = Array.isArray(raw.excerpts) ? raw.excerpts : [];
   }
+  r = r.map(migrateRef);
   return { refs: r, excerpts: e, warning };
 }
 
@@ -1439,9 +1525,10 @@ function renderRefs(q) {
   if (q) {
     const lq = q.toLowerCase();
     refs = refs.filter(r =>
-      (r.author    || '').toLowerCase().includes(lq) ||
-      (r.title     || '').toLowerCase().includes(lq) ||
-      (r.publisher || '').toLowerCase().includes(lq)
+      (r.author      || '').toLowerCase().includes(lq) ||
+      (r.title       || '').toLowerCase().includes(lq) ||
+      (r.publisher   || '').toLowerCase().includes(lq) ||
+      (r.journalName || '').toLowerCase().includes(lq)
     );
   }
 
@@ -1459,20 +1546,32 @@ function renderRefs(q) {
   }
 
   el.innerHTML = refs.map(r => {
-    const cnt  = exAll.filter(e => e.referenceId === r.id).length;
+    const cnt       = exAll.filter(e => e.referenceId === r.id).length;
+    const isJournal = r.type === 'journal';
+    const typeBadge = isJournal
+      ? '<span class="ref-type-badge journal">雑誌論文</span>'
+      : '<span class="ref-type-badge book">書籍</span>';
+
     const meta = [
-      r.year        && `${r.year}年`,
-      r.publisher,
-      r.translator  && `翻訳/編: ${r.translator}`,
-      r.isbnDoi,
-      r.language    && LANG[r.language],
+      r.year && `${r.year}年`,
+      !isJournal && r.publisher,
+      !isJournal && r.translator  && `翻訳/編: ${r.translator}`,
+      !isJournal && r.isbn,
+      isJournal  && r.journalName,
+      isJournal  && r.volume && `第${r.volume}巻`,
+      isJournal  && r.issue  && `第${r.issue}号`,
+      isJournal  && r.pages,
+      isJournal  && r.doi    && `DOI: ${r.doi}`,
+      r.language && LANG[r.language],
     ].filter(Boolean);
 
     return `
     <div class="ref-card">
       <div class="ref-info">
         <div class="ref-title">${esc(r.title)}</div>
-        <div class="ref-author">${esc(r.author)}</div>
+        <div class="ref-author" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+          ${typeBadge}<span>${esc(r.author)}</span>
+        </div>
         ${meta.length ? `<div class="ref-meta">${meta.map(esc).map(s => `<span>${s}</span>`).join('')}</div>` : ''}
         ${r.notes ? `<div class="ref-note">${esc(r.notes)}</div>` : ''}
       </div>
@@ -1500,25 +1599,49 @@ async function deleteRef(id, cnt) {
 }
 
 /* ─── Reference modal ─── */
+function setRefType(type) {
+  document.querySelectorAll('#ref-type-toggle .type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  const isJournal = type === 'journal';
+  document.getElementById('r-book-fields').style.display    = isJournal ? 'none' : 'flex';
+  document.getElementById('r-journal-fields').style.display = isJournal ? 'flex' : 'none';
+}
+
+document.getElementById('ref-type-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.type-btn');
+  if (!btn) return;
+  setRefType(btn.dataset.type);
+});
+
 function openRefModal(editId) {
   S.editRefId = editId || null;
-  const fields = ['r-author','r-title','r-year','r-publisher','r-translator','r-isbn','r-lang','r-notes'];
 
   if (editId) {
     const r = DB.getRefs().find(x => x.id === editId);
     if (!r) return;
     document.getElementById('ref-modal-title').textContent = '文献を編集';
-    document.getElementById('r-author').value     = r.author      || '';
-    document.getElementById('r-title').value      = r.title       || '';
-    document.getElementById('r-year').value       = r.year        || '';
-    document.getElementById('r-publisher').value  = r.publisher   || '';
-    document.getElementById('r-translator').value = r.translator  || '';
-    document.getElementById('r-isbn').value       = r.isbnDoi     || '';
-    document.getElementById('r-lang').value       = r.language    || '';
-    document.getElementById('r-notes').value      = r.notes       || '';
+    setRefType(r.type || 'book');
+    document.getElementById('r-author').value       = r.author      || '';
+    document.getElementById('r-title').value        = r.title       || '';
+    document.getElementById('r-year').value         = r.year        || '';
+    document.getElementById('r-lang').value         = r.language    || '';
+    document.getElementById('r-notes').value        = r.notes       || '';
+    document.getElementById('r-publisher').value    = r.publisher   || '';
+    document.getElementById('r-translator').value   = r.translator  || '';
+    document.getElementById('r-isbn').value         = r.isbn        || '';
+    document.getElementById('r-journal-name').value = r.journalName || '';
+    document.getElementById('r-volume').value       = r.volume      || '';
+    document.getElementById('r-issue').value        = r.issue       || '';
+    document.getElementById('r-pages').value        = r.pages       || '';
+    document.getElementById('r-doi').value          = r.doi         || '';
   } else {
     document.getElementById('ref-modal-title').textContent = '文献を追加';
-    fields.forEach(id => document.getElementById(id).value = '');
+    setRefType('book');
+    ['r-author','r-title','r-year','r-publisher','r-translator','r-isbn',
+     'r-journal-name','r-volume','r-issue','r-pages','r-doi','r-notes']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('r-lang').value = '';
   }
 
   document.getElementById('ref-modal').classList.add('open');
@@ -1538,16 +1661,35 @@ document.getElementById('ref-save').addEventListener('click', async () => {
   if (!author) { alert('著者名を入力してください。'); return; }
   if (!title)  { alert('タイトルを入力してください。'); return; }
 
+  const type = document.querySelector('#ref-type-toggle .type-btn.active')?.dataset.type || 'book';
   const data = {
+    type,
     author,
     title,
-    year:       document.getElementById('r-year').value.trim(),
-    publisher:  document.getElementById('r-publisher').value.trim(),
-    translator: document.getElementById('r-translator').value.trim(),
-    isbnDoi:    document.getElementById('r-isbn').value.trim(),
-    language:   document.getElementById('r-lang').value,
-    notes:      document.getElementById('r-notes').value.trim(),
+    year:     document.getElementById('r-year').value.trim(),
+    language: document.getElementById('r-lang').value,
+    notes:    document.getElementById('r-notes').value.trim(),
   };
+
+  if (type === 'book') {
+    data.publisher   = document.getElementById('r-publisher').value.trim();
+    data.translator  = document.getElementById('r-translator').value.trim();
+    data.isbn        = document.getElementById('r-isbn').value.trim();
+    data.journalName = '';
+    data.volume      = '';
+    data.issue       = '';
+    data.pages       = '';
+    data.doi         = '';
+  } else {
+    data.journalName = document.getElementById('r-journal-name').value.trim();
+    data.volume      = document.getElementById('r-volume').value.trim();
+    data.issue       = document.getElementById('r-issue').value.trim();
+    data.pages       = document.getElementById('r-pages').value.trim();
+    data.doi         = document.getElementById('r-doi').value.trim();
+    data.publisher   = '';
+    data.translator  = '';
+    data.isbn        = '';
+  }
 
   if (S.editRefId) { await DB.updateRef(S.editRefId, data); toast('文献を更新しました'); }
   else             { await DB.addRef(data);                  toast('文献を追加しました'); }
