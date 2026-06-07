@@ -560,6 +560,126 @@
     }
     .toast.show { opacity: 1; transform: translateY(0); }
 
+    /* ── Card type badge ── */
+    .card-type-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 3px;
+      padding: 1px 6px;
+      white-space: nowrap;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    .card-type-badge.excerpt { background: #e8f4e8; color: #2a5a2a; border: 1px solid #9ecf9e; }
+    .card-type-badge.idea    { background: #f5eef8; color: #6a2a8a; border: 1px solid #c9a0dc; }
+
+    .card-idea-body {
+      font-size: 14px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    /* ── Link widget (modal) ── */
+    .link-widget {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: border-color .15s;
+    }
+    .link-widget:focus-within { border-color: var(--accent); }
+    .link-selected-list { display: flex; flex-direction: column; gap: 4px; }
+    .link-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 12px;
+    }
+    .link-chip-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link-search-wrap { position: relative; }
+    .link-search-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 13px;
+      font-family: var(--sans);
+      background: transparent;
+      color: var(--text);
+      padding: 2px 4px;
+    }
+    .link-dropdown {
+      position: absolute;
+      top: calc(100% + 3px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 300;
+      display: none;
+    }
+    .link-drop-item { padding: 8px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+    .link-drop-item:hover { background: var(--bg); }
+    .link-drop-title { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .link-drop-snippet { font-size: 11px; color: var(--muted); }
+
+    /* ── Linked cards section (card list) ── */
+    .linked-cards-section { border-top: 1px solid var(--border); padding-top: 8px; }
+    .linked-cards-header {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .linked-card-item { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; overflow: hidden; }
+    .linked-card-item:last-child { margin-bottom: 0; }
+    .linked-card-preview {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      background: var(--bg);
+      transition: background .12s;
+    }
+    .linked-card-preview:hover { background: #eee8dc; }
+    .linked-card-title { font-size: 12px; font-weight: 600; flex-shrink: 0; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .linked-card-snippet { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .linked-card-inline {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .linked-card-inline-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+    .linked-card-inline-quote {
+      font-family: var(--serif);
+      font-size: 13px;
+      line-height: 1.7;
+      border-left: 3px solid var(--border);
+      padding-left: 10px;
+      white-space: pre-wrap;
+    }
+    .linked-card-inline-body { font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+    .linked-card-inline-source { font-size: 11px; color: var(--accent); font-weight: 600; }
+    .linked-card-inline-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+
     /* Scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -590,6 +710,15 @@
     </div>
 
     <div class="sidebar-section">
+      <div class="section-label">種別で絞り込み</div>
+      <div class="tag-filter-list" id="type-filter-chips">
+        <span class="tag-chip active" data-type="all">すべて</span>
+        <span class="tag-chip" data-type="excerpt">抜書き</span>
+        <span class="tag-chip" data-type="idea">アイデア</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
       <div class="section-label">文献で絞り込み</div>
       <select class="filter-select" id="ref-filter">
         <option value="">すべての文献</option>
@@ -613,7 +742,8 @@
       <button class="btn btn-ghost" id="json-import-btn" style="display:none">↑ インポート</button>
       <button class="btn btn-ghost" id="json-export-btn" style="display:none">↓ エクスポート</button>
       <button class="btn btn-ghost" id="export-btn">↓ Markdownエクスポート</button>
-      <button class="btn btn-primary" id="new-card-btn">＋ カード作成</button>
+      <button class="btn btn-ghost" id="add-excerpt-btn">＋ 抜書きを追加</button>
+      <button class="btn btn-primary" id="add-idea-btn">＋ アイデアを追加</button>
     </div>
     <div class="cards-list" id="cards-list"></div>
   </div>
@@ -658,6 +788,16 @@
       <div class="form-group">
         <label class="form-label">メモ</label>
         <textarea class="form-textarea" id="c-notes" placeholder="解釈・備考など…"></textarea>
+      </div>
+      <div class="form-group" style="position:relative">
+        <label class="form-label">関連カード</label>
+        <div class="link-widget" id="card-link-widget">
+          <div class="link-selected-list" id="card-link-list"></div>
+          <div class="link-search-wrap">
+            <input type="text" class="link-search-input" id="card-link-input" placeholder="キーワードでカードを検索…">
+            <div class="link-dropdown" id="card-link-dropdown"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -780,6 +920,40 @@
   </div>
 </div>
 
+<!-- ══ IDEA CARD MODAL ══ -->
+<div class="modal-overlay" id="idea-modal">
+  <div class="modal">
+    <div class="modal-title" id="idea-modal-title">アイデアを追加</div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label">アイデア本文<span class="req">*</span></label>
+        <textarea class="form-textarea" id="idea-body" placeholder="アイデアを入力…" style="min-height:140px"></textarea>
+      </div>
+      <div class="form-group" style="position:relative">
+        <label class="form-label">タグ</label>
+        <div class="tag-widget" id="idea-tag-widget">
+          <input type="text" class="tag-input-field" id="idea-tag-field" placeholder="入力→ Enter で追加">
+        </div>
+        <div class="tag-dropdown" id="idea-tag-dropdown"></div>
+      </div>
+      <div class="form-group" style="position:relative">
+        <label class="form-label">関連カード</label>
+        <div class="link-widget" id="idea-link-widget">
+          <div class="link-selected-list" id="idea-link-list"></div>
+          <div class="link-search-wrap">
+            <input type="text" class="link-search-input" id="idea-link-input" placeholder="キーワードでカードを検索…">
+            <div class="link-dropdown" id="idea-link-dropdown"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="idea-cancel">キャンセル</button>
+      <button class="btn btn-primary" id="idea-save">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ TOAST ══ -->
 <div class="toast" id="toast"></div>
 
@@ -830,7 +1004,7 @@ function toast(msg) {
 }
 
 /* ─── Data versioning ─── */
-const DATA_VERSION = 2;
+const DATA_VERSION = 3;
 
 function migrateRef(r) {
   if (!r.type) r.type = 'book';
@@ -844,13 +1018,19 @@ function migrateRef(r) {
   return r;
 }
 
+function migrateCard(c) {
+  if (!c.type) c.type = 'excerpt';
+  if (!c.linkedCardIds) c.linkedCardIds = [];
+  if (c.ideaBody === undefined) c.ideaBody = '';
+  return c;
+}
+
 function parseData(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { refs: [], excerpts: [], warning: null };
   }
   let r, e, warning = null;
-  if (raw.version === undefined || raw.version === 1) {
-    // バージョンなし or v1 → v2 に自動変換
+  if (raw.version === undefined || raw.version === 1 || raw.version === 2) {
     r = Array.isArray(raw.references) ? raw.references
       : Array.isArray(raw.refs)       ? raw.refs : [];
     e = Array.isArray(raw.excerpts) ? raw.excerpts : [];
@@ -864,6 +1044,7 @@ function parseData(raw) {
     e = Array.isArray(raw.excerpts) ? raw.excerpts : [];
   }
   r = r.map(migrateRef);
+  e = e.map(migrateCard);
   return { refs: r, excerpts: e, warning };
 }
 
@@ -943,7 +1124,7 @@ const DB = (() => {
   /* localStorage fallback */
   function loadLS() {
     try { refs     = JSON.parse(localStorage.getItem('em_refs'))     || []; } catch { refs = []; }
-    try { excerpts = JSON.parse(localStorage.getItem('em_excerpts')) || []; } catch { excerpts = []; }
+    try { excerpts = (JSON.parse(localStorage.getItem('em_excerpts')) || []).map(migrateCard); } catch { excerpts = []; }
   }
   function saveLS() {
     localStorage.setItem('em_refs',     JSON.stringify(refs));
@@ -1215,10 +1396,14 @@ const S = {
   q: '',
   refFilter: '',
   tagFilter: new Set(),
+  typeFilter: 'all',
   selected: new Set(),
   editExId: null,
   editRefId: null,
   cardTags: [],
+  cardLinks: [],
+  expandedLinks: new Set(),
+  linkPrefix: '',
   fromRefs: false,
 };
 
@@ -1237,11 +1422,19 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 /* ─── Filter & render cards ─── */
 function filteredEx() {
   let list = DB.getEx();
+  if (S.typeFilter !== 'all') {
+    list = list.filter(e =>
+      S.typeFilter === 'excerpt'
+        ? (!e.type || e.type === 'excerpt')
+        : e.type === S.typeFilter
+    );
+  }
   if (S.q) {
     const q = S.q.toLowerCase();
     list = list.filter(e =>
-      (e.quote || '').toLowerCase().includes(q) ||
-      (e.notes || '').toLowerCase().includes(q)
+      (e.quote    || '').toLowerCase().includes(q) ||
+      (e.notes    || '').toLowerCase().includes(q) ||
+      (e.ideaBody || '').toLowerCase().includes(q)
     );
   }
   if (S.refFilter) list = list.filter(e => e.referenceId === S.refFilter);
@@ -1256,6 +1449,25 @@ function refMap() {
   return m;
 }
 
+function cardMap() {
+  const m = {};
+  DB.getEx().forEach(c => { m[c.id] = c; });
+  return m;
+}
+
+function cardTitle(card, rm) {
+  if (card.type === 'idea') {
+    const t = card.ideaBody || '';
+    return t.slice(0, 20) + (t.length > 20 ? '…' : '');
+  }
+  return refLabel(rm[card.referenceId], card.page);
+}
+
+function cardSnippet(card) {
+  const t = card.type === 'idea' ? (card.ideaBody || '') : (card.quote || '');
+  return t.slice(0, 60) + (t.length > 60 ? '…' : '');
+}
+
 function refLabel(ref, page) {
   if (!ref) return page ? `（文献不明） p.${page}` : '（文献不明）';
   const p = page ? ` p.${page}` : '';
@@ -1266,6 +1478,7 @@ function renderCards() {
   const list  = filteredEx();
   const total = DB.getEx().length;
   const rm    = refMap();
+  const cm    = cardMap();
   const el    = document.getElementById('cards-list');
 
   document.getElementById('card-count').textContent =
@@ -1283,26 +1496,79 @@ function renderCards() {
   }
 
   el.innerHTML = list.map(e => {
+    const isIdea = e.type === 'idea';
     const ref  = rm[e.referenceId];
-    const lbl  = refLabel(ref, e.page);
     const tags = (e.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('');
     const sel  = S.selected.has(e.id);
+    const typeBadge = isIdea
+      ? '<span class="card-type-badge idea">アイデア</span>'
+      : '<span class="card-type-badge excerpt">抜書き</span>';
+    const body = isIdea
+      ? `<div class="card-idea-body">${esc(e.ideaBody)}</div>`
+      : `<div class="card-quote">${esc(e.quote)}</div>${e.notes ? `<div class="card-notes">${esc(e.notes)}</div>` : ''}`;
+    const refLine = isIdea ? '' : esc(refLabel(ref, e.page));
+
+    const linkedIds = (e.linkedCardIds || []).filter(id => cm[id]);
+    const linkedSection = linkedIds.length ? (() => {
+      const items = linkedIds.map(childId => {
+        const child = cm[childId];
+        const key = `${e.id}|${childId}`;
+        const expanded = S.expandedLinks.has(key);
+        const childIsIdea = child.type === 'idea';
+        const childBadge = childIsIdea
+          ? '<span class="card-type-badge idea">アイデア</span>'
+          : '<span class="card-type-badge excerpt">抜書き</span>';
+        let inlineHtml = '';
+        if (expanded) {
+          const childTags = (child.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('');
+          if (childIsIdea) {
+            inlineHtml = `<div class="linked-card-inline">
+              <div class="linked-card-inline-meta">${childBadge}<span>${fmtDateTime(child.createdAt)}</span></div>
+              <div class="linked-card-inline-body">${esc(child.ideaBody)}</div>
+              ${childTags ? `<div class="linked-card-inline-tags">${childTags}</div>` : ''}
+            </div>`;
+          } else {
+            const childRef = rm[child.referenceId];
+            const src = childRef ? esc(refLabel(childRef, child.page)) : '';
+            inlineHtml = `<div class="linked-card-inline">
+              <div class="linked-card-inline-meta">${childBadge}<span>${fmtDateTime(child.createdAt)}</span></div>
+              <div class="linked-card-inline-quote">${esc(child.quote)}</div>
+              ${src ? `<div class="linked-card-inline-source">${src}</div>` : ''}
+              ${childTags ? `<div class="linked-card-inline-tags">${childTags}</div>` : ''}
+            </div>`;
+          }
+        }
+        return `<div class="linked-card-item">
+          <div class="linked-card-preview" onclick="toggleInlineExpand('${esc(e.id)}','${esc(childId)}')">
+            ${childBadge}
+            <span class="linked-card-title">${esc(cardTitle(child, rm))}</span>
+            <span class="linked-card-snippet">${esc(cardSnippet(child))}</span>
+          </div>
+          ${inlineHtml}
+        </div>`;
+      }).join('');
+      return `<div class="linked-cards-section">
+        <div class="linked-cards-header">LINKED CARDS (${linkedIds.length})</div>
+        ${items}
+      </div>`;
+    })() : '';
+
     return `
     <div class="card${sel ? ' selected' : ''}" data-id="${esc(e.id)}">
       <div class="card-header">
         <input type="checkbox" class="card-checkbox" data-id="${esc(e.id)}" ${sel ? 'checked' : ''}>
-        <span class="card-ref">${esc(lbl)}</span>
+        <span class="card-ref">${typeBadge}${refLine}</span>
         <div class="card-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openCardModal('${esc(e.id)}')">編集</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal('${esc(e.id)}')">編集</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCard('${esc(e.id)}')">削除</button>
         </div>
       </div>
-      <div class="card-quote">${esc(e.quote)}</div>
-      ${e.notes ? `<div class="card-notes">${esc(e.notes)}</div>` : ''}
+      ${body}
       <div class="card-footer">
         <div class="card-tags">${tags}</div>
         <span class="card-date">${fmtDateTime(e.createdAt)}</span>
       </div>
+      ${linkedSection}
     </div>`;
   }).join('');
 
@@ -1341,11 +1607,13 @@ function renderSidebar() {
     });
   }
 
-  const exTotal  = DB.getEx().length;
-  const refTotal = refs.length;
-  const tagTotal = tags.length;
+  const allCards  = DB.getEx();
+  const exTotal   = allCards.filter(c => c.type !== 'idea').length;
+  const ideaTotal = allCards.filter(c => c.type === 'idea').length;
+  const refTotal  = refs.length;
+  const tagTotal  = tags.length;
   document.getElementById('sidebar-stats').textContent =
-    `文献 ${refTotal} 件 · カード ${exTotal} 件 · タグ ${tagTotal} 件`;
+    `文献 ${refTotal} 件 · 抜書き ${exTotal} 件 · アイデア ${ideaTotal} 件 · タグ ${tagTotal} 件`;
 }
 
 document.getElementById('search-input').addEventListener('input', e => {
@@ -1357,6 +1625,14 @@ document.getElementById('ref-filter').addEventListener('change', e => {
   S.refFilter = e.target.value;
   renderCards();
 });
+
+/* ─── Edit modal dispatcher ─── */
+function openEditModal(id) {
+  const card = DB.getEx().find(c => c.id === id);
+  if (!card) return;
+  if (card.type === 'idea') openIdeaModal(id);
+  else openCardModal(id);
+}
 
 /* ─── Delete card ─── */
 async function deleteCard(id) {
@@ -1386,13 +1662,16 @@ function openCardModal(editId, presetRefId, fromRefs) {
     document.getElementById('c-quote').value = ex.quote || '';
     document.getElementById('c-page').value  = ex.page  || '';
     document.getElementById('c-notes').value = ex.notes || '';
-    S.cardTags = [...(ex.tags || [])];
+    S.cardTags  = [...(ex.tags || [])];
+    S.cardLinks = [...(ex.linkedCardIds || [])];
   } else {
     document.getElementById('card-modal-title').textContent = 'カード作成';
     refSel.value = presetRefId || '';
     ['c-quote', 'c-page', 'c-notes'].forEach(id => document.getElementById(id).value = '');
-    S.cardTags = [];
+    S.cardTags  = [];
+    S.cardLinks = [];
   }
+  S.linkPrefix = 'card';
 
   const showNormal = !fromRefs;
   document.getElementById('card-cancel').style.display       = showNormal ? '' : 'none';
@@ -1401,6 +1680,7 @@ function openCardModal(editId, presetRefId, fromRefs) {
   document.getElementById('card-save-close').style.display    = showNormal ? 'none' : '';
 
   renderTagWidget();
+  renderLinkWidget();
   document.getElementById('card-modal').classList.add('open');
   setTimeout(() => document.getElementById('c-quote').focus(), 80);
 }
@@ -1408,6 +1688,7 @@ function openCardModal(editId, presetRefId, fromRefs) {
 function closeCardModal() {
   document.getElementById('card-modal').classList.remove('open');
   hideDropdown();
+  hideLinkDropdown();
 }
 
 /* Tag widget */
@@ -1472,11 +1753,14 @@ async function collectAndSaveCard() {
   if (!refId) { alert('文献を選択してください。'); return null; }
 
   const data = {
+    type: 'excerpt',
     referenceId: refId,
     quote,
-    page:  document.getElementById('c-page').value.trim(),
-    notes: document.getElementById('c-notes').value.trim(),
-    tags:  [...S.cardTags],
+    page:         document.getElementById('c-page').value.trim(),
+    notes:        document.getElementById('c-notes').value.trim(),
+    tags:         [...S.cardTags],
+    linkedCardIds: [...S.cardLinks],
+    ideaBody:     '',
   };
 
   if (S.editExId) { await DB.updateEx(S.editExId, data); toast('カードを更新しました'); }
@@ -1507,7 +1791,7 @@ document.getElementById('card-save-close').addEventListener('click', async () =>
   renderRefs();
 });
 
-document.getElementById('new-card-btn').addEventListener('click', () => {
+document.getElementById('add-excerpt-btn').addEventListener('click', () => {
   if (DB.getRefs().length === 0) {
     if (confirm('文献が未登録です。文献管理画面へ移動しますか？'))
       document.querySelector('[data-tab="refs"]').click();
@@ -1515,6 +1799,8 @@ document.getElementById('new-card-btn').addEventListener('click', () => {
   }
   openCardModal();
 });
+
+document.getElementById('add-idea-btn').addEventListener('click', () => openIdeaModal());
 
 /* ─── References ─── */
 const LANG = { ja:'日本語', fr:'フランス語', en:'英語', de:'ドイツ語', other:'その他' };
@@ -1792,10 +2078,240 @@ document.getElementById('json-import-input').addEventListener('change', async fu
   this.value = '';
 });
 
+/* ─── Link widget ─── */
+function renderLinkWidget() {
+  const p   = S.linkPrefix;
+  const el  = document.getElementById(`${p}-link-list`);
+  const rm  = refMap();
+  el.innerHTML = '';
+  S.cardLinks.forEach(id => {
+    const card = DB.getEx().find(c => c.id === id);
+    if (!card) return;
+    const badge = card.type === 'idea'
+      ? '<span class="card-type-badge idea">アイデア</span>'
+      : '<span class="card-type-badge excerpt">抜書き</span>';
+    const title = esc(cardTitle(card, rm));
+    const div = document.createElement('div');
+    div.className = 'link-chip';
+    div.innerHTML = `${badge}<span class="link-chip-text">${title}</span>`;
+    const btn = document.createElement('button');
+    btn.className = 'tag-x';
+    btn.type = 'button';
+    btn.textContent = '×';
+    btn.addEventListener('click', () => {
+      S.cardLinks = S.cardLinks.filter(x => x !== id);
+      renderLinkWidget();
+    });
+    div.appendChild(btn);
+    el.appendChild(div);
+  });
+}
+
+function hideLinkDropdown() {
+  ['card', 'idea'].forEach(p => {
+    const el = document.getElementById(`${p}-link-dropdown`);
+    if (el) el.style.display = 'none';
+  });
+}
+
+function showLinkDropdown(q) {
+  const p  = S.linkPrefix;
+  const el = document.getElementById(`${p}-link-dropdown`);
+  const rm = refMap();
+  if (!q) { hideLinkDropdown(); return; }
+  const lq = q.toLowerCase();
+  const candidates = DB.getEx().filter(c => {
+    if (c.id === S.editExId) return false;
+    if (S.cardLinks.includes(c.id)) return false;
+    const text = c.type === 'idea'
+      ? (c.ideaBody || '')
+      : `${c.quote || ''} ${c.notes || ''}`;
+    return text.toLowerCase().includes(lq);
+  });
+  if (!candidates.length) { hideLinkDropdown(); return; }
+  el.innerHTML = candidates.slice(0, 8).map(c => {
+    const badge = c.type === 'idea'
+      ? '<span class="card-type-badge idea">アイデア</span>'
+      : '<span class="card-type-badge excerpt">抜書き</span>';
+    return `<div class="link-drop-item" data-id="${esc(c.id)}">
+      <div class="link-drop-title">${badge}${esc(cardTitle(c, rm))}</div>
+      <div class="link-drop-snippet">${esc(cardSnippet(c))}</div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.link-drop-item').forEach(item => {
+    item.addEventListener('mousedown', ev => {
+      ev.preventDefault();
+      if (!S.cardLinks.includes(item.dataset.id)) S.cardLinks.push(item.dataset.id);
+      document.getElementById(`${p}-link-input`).value = '';
+      renderLinkWidget();
+      hideLinkDropdown();
+    });
+  });
+  el.style.display = 'block';
+}
+
+function toggleInlineExpand(parentId, childId) {
+  const key = `${parentId}|${childId}`;
+  if (S.expandedLinks.has(key)) S.expandedLinks.delete(key);
+  else S.expandedLinks.add(key);
+  renderCards();
+}
+
+/* ─── Type filter chips ─── */
+document.getElementById('type-filter-chips').addEventListener('click', e => {
+  const chip = e.target.closest('.tag-chip');
+  if (!chip) return;
+  S.typeFilter = chip.dataset.type;
+  document.querySelectorAll('#type-filter-chips .tag-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.type === S.typeFilter);
+  });
+  renderCards();
+});
+
+/* ─── Idea card modal ─── */
+function renderIdeaTagWidget() {
+  const widget = document.getElementById('idea-tag-widget');
+  const field  = document.getElementById('idea-tag-field');
+  widget.querySelectorAll('.tag-removable').forEach(el => el.remove());
+  S.cardTags.forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'tag-removable';
+    span.dataset.tag = t;
+    span.innerHTML = `#${esc(t)}<button class="tag-x" type="button" aria-label="削除">×</button>`;
+    span.querySelector('.tag-x').addEventListener('click', () => {
+      S.cardTags = S.cardTags.filter(x => x !== t);
+      renderIdeaTagWidget();
+    });
+    widget.insertBefore(span, field);
+  });
+}
+
+function addIdeaTag(raw) {
+  const t = raw.trim();
+  if (!t || S.cardTags.includes(t)) return;
+  S.cardTags.push(t);
+  renderIdeaTagWidget();
+  document.getElementById('idea-tag-field').value = '';
+  hideIdeaDropdown();
+}
+
+function hideIdeaDropdown() {
+  document.getElementById('idea-tag-dropdown').style.display = 'none';
+}
+
+function showIdeaDropdown(q) {
+  const all = DB.allTags().filter(t => t.toLowerCase().includes(q.toLowerCase()) && !S.cardTags.includes(t));
+  const el  = document.getElementById('idea-tag-dropdown');
+  if (!all.length || !q) { hideIdeaDropdown(); return; }
+  el.innerHTML = all.map(t => `<div class="tag-drop-item" data-tag="${esc(t)}">#${esc(t)}</div>`).join('');
+  el.querySelectorAll('.tag-drop-item').forEach(item => {
+    item.addEventListener('mousedown', e => { e.preventDefault(); addIdeaTag(item.dataset.tag); });
+  });
+  el.style.display = 'block';
+}
+
+document.getElementById('idea-tag-field').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ',') && !e.isComposing) { e.preventDefault(); addIdeaTag(e.target.value); }
+  else if (e.key === 'Backspace' && !e.target.value && S.cardTags.length) {
+    S.cardTags.pop();
+    renderIdeaTagWidget();
+  }
+});
+document.getElementById('idea-tag-field').addEventListener('input', e => showIdeaDropdown(e.target.value));
+document.getElementById('idea-tag-widget').addEventListener('click', () => document.getElementById('idea-tag-field').focus());
+
+function openIdeaModal(editId) {
+  S.editExId  = editId || null;
+  S.cardTags  = [];
+
+  if (editId) {
+    const card = DB.getEx().find(c => c.id === editId);
+    if (!card) return;
+    document.getElementById('idea-modal-title').textContent = 'アイデアを編集';
+    document.getElementById('idea-body').value = card.ideaBody || '';
+    S.cardTags  = [...(card.tags || [])];
+    S.cardLinks = [...(card.linkedCardIds || [])];
+  } else {
+    document.getElementById('idea-modal-title').textContent = 'アイデアを追加';
+    document.getElementById('idea-body').value = '';
+    S.cardLinks = [];
+  }
+  S.linkPrefix = 'idea';
+
+  renderIdeaTagWidget();
+  renderLinkWidget();
+  document.getElementById('idea-modal').classList.add('open');
+  setTimeout(() => document.getElementById('idea-body').focus(), 80);
+}
+
+function closeIdeaModal() {
+  document.getElementById('idea-modal').classList.remove('open');
+  hideIdeaDropdown();
+  hideLinkDropdown();
+}
+
+async function collectAndSaveIdea() {
+  const tf = document.getElementById('idea-tag-field');
+  if (tf.value.trim()) addIdeaTag(tf.value);
+
+  const ideaBody = document.getElementById('idea-body').value.trim();
+  if (!ideaBody) { alert('アイデア本文を入力してください。'); return false; }
+
+  const data = {
+    type:          'idea',
+    ideaBody,
+    tags:          [...S.cardTags],
+    linkedCardIds: [...S.cardLinks],
+    referenceId:   '',
+    quote:         '',
+    page:          '',
+    notes:         '',
+  };
+
+  if (S.editExId) { await DB.updateEx(S.editExId, data); toast('アイデアを更新しました'); }
+  else            { await DB.addEx(data);                 toast('アイデアを作成しました'); }
+
+  return true;
+}
+
+document.getElementById('idea-cancel').addEventListener('click', closeIdeaModal);
+document.getElementById('idea-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeIdeaModal(); });
+document.getElementById('idea-save').addEventListener('click', async () => {
+  const ok = await collectAndSaveIdea();
+  if (!ok) return;
+  closeIdeaModal();
+  renderCards();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#idea-tag-widget') && !e.target.closest('#idea-tag-dropdown'))
+    hideIdeaDropdown();
+});
+
+/* ─── Link widget event listeners ─── */
+['card', 'idea'].forEach(p => {
+  document.getElementById(`${p}-link-input`).addEventListener('input', e => {
+    S.linkPrefix = p;
+    showLinkDropdown(e.target.value);
+  });
+  document.getElementById(`${p}-link-input`).addEventListener('focus', () => {
+    S.linkPrefix = p;
+  });
+  document.getElementById(`${p}-link-widget`).addEventListener('click', () => {
+    document.getElementById(`${p}-link-input`).focus();
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('[id$="-link-widget"]') && !e.target.closest('[id$="-link-dropdown"]'))
+    hideLinkDropdown();
+});
+
 /* ─── Global keyboard ─── */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   closeCardModal();
+  closeIdeaModal();
   closeRefModal();
   document.getElementById('export-modal').classList.remove('open');
   hideDropdown();
