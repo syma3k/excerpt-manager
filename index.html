@@ -799,6 +799,14 @@
 
       .form-row { grid-template-columns: 1fr; }
 
+      /* Stack modal footer buttons full-width for easy tapping */
+      .modal-footer {
+        flex-direction: column;
+      }
+      .modal-footer .btn {
+        width: 100%;
+      }
+
       /* Prevent iOS Safari from zooming in on focus */
       .form-input, .form-select, .form-textarea,
       .search-input, .filter-select, .tag-input-field, .link-search-input {
@@ -926,10 +934,10 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" id="card-cancel">キャンセル</button>
       <button class="btn btn-primary" id="card-save">保存</button>
       <button class="btn btn-primary" id="card-save-continue" style="display:none">保存して続ける</button>
       <button class="btn btn-primary" id="card-save-close" style="display:none">保存して閉じる</button>
+      <button class="btn btn-ghost" id="card-cancel">キャンセル</button>
     </div>
   </div>
 </div>
@@ -1799,8 +1807,8 @@ function openCardModal(editId, presetRefId, fromRefs) {
   S.linkPrefix = 'card';
 
   const showNormal = !fromRefs;
-  document.getElementById('card-cancel').style.display       = showNormal ? '' : 'none';
-  document.getElementById('card-save').style.display         = showNormal ? '' : 'none';
+  document.getElementById('card-cancel').style.display        = '';
+  document.getElementById('card-save').style.display          = showNormal ? '' : 'none';
   document.getElementById('card-save-continue').style.display = showNormal ? 'none' : '';
   document.getElementById('card-save-close').style.display    = showNormal ? 'none' : '';
 
