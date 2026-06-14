@@ -684,6 +684,101 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Mobile sidebar controls (hidden on desktop) ── */
+    .sidebar-close-btn { display: none; }
+    .mobile-filter-btn { display: none; }
+    .sidebar-backdrop  { display: none; }
+
+    /* ══════════════════════════════════════════════
+       Responsive layout (iPhone Safari etc., <=768px)
+       ══════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+
+      /* Sidebar becomes an off-canvas overlay */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 82%;
+        max-width: 320px;
+        z-index: 210;
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        box-shadow: 2px 0 18px rgba(0,0,0,.18);
+      }
+      .sidebar.open { transform: translateX(0); }
+
+      .sidebar-close-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: flex-end;
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .sidebar-backdrop.show {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.4);
+        z-index: 200;
+      }
+
+      /* Filter toggle button */
+      .mobile-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+      }
+
+      /* Main area fills the screen when sidebar is hidden */
+      .main { width: 100%; }
+
+      .toolbar { flex-wrap: wrap; row-gap: 8px; }
+
+      /* Card list takes full width with tighter padding */
+      .cards-list { padding: 10px; gap: 10px; }
+      .card { width: 100%; }
+
+      /* No hover on touch devices: keep actions visible */
+      .card-actions { opacity: 1; }
+
+      /* ── Tap targets (min 44px) ── */
+      .btn, .tab-btn, .type-btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card-checkbox { width: 20px; height: 20px; }
+
+      .card-quote, .card-idea-body { font-size: 15px; }
+      .card-ref { font-size: 13px; }
+
+      /* ── Fullscreen / bottom-sheet modals ── */
+      .modal-overlay { align-items: flex-end; }
+      .modal {
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        padding: 16px;
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+      }
+
+      .form-row { grid-template-columns: 1fr; }
+
+      /* Prevent iOS Safari from zooming in on focus */
+      .form-input, .form-select, .form-textarea,
+      .search-input, .filter-select, .tag-input-field, .link-search-input {
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -703,7 +798,8 @@
 <!-- ══ CARDS VIEW ══ -->
 <div id="cards-view" class="view active">
 
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+    <button class="btn btn-ghost sidebar-close-btn" id="sidebar-close-btn">✕ 閉じる</button>
     <div class="sidebar-section">
       <div class="section-label">全文検索</div>
       <input type="search" class="search-input" id="search-input" placeholder="引用文・メモを検索…">
@@ -735,8 +831,11 @@
     <div class="sidebar-stats" id="sidebar-stats"></div>
   </aside>
 
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
   <div class="main">
     <div class="toolbar">
+      <button class="btn btn-ghost mobile-filter-btn" id="mobile-filter-btn">☰ フィルター</button>
       <span class="result-count" id="card-count"></span>
       <div class="toolbar-spacer"></div>
       <button class="btn btn-ghost" id="json-import-btn" style="display:none">↑ インポート</button>
@@ -2307,12 +2406,29 @@ document.addEventListener('click', e => {
     hideLinkDropdown();
 });
 
+/* ─── Mobile sidebar (filter overlay) ─── */
+const sidebarEl       = document.getElementById('sidebar');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+function openSidebar() {
+  sidebarEl.classList.add('open');
+  sidebarBackdrop.classList.add('show');
+}
+function closeSidebar() {
+  sidebarEl.classList.remove('open');
+  sidebarBackdrop.classList.remove('show');
+}
+document.getElementById('mobile-filter-btn').addEventListener('click', openSidebar);
+document.getElementById('sidebar-close-btn').addEventListener('click', closeSidebar);
+sidebarBackdrop.addEventListener('click', closeSidebar);
+
 /* ─── Global keyboard ─── */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   closeCardModal();
   closeIdeaModal();
   closeRefModal();
+  closeSidebar();
   document.getElementById('export-modal').classList.remove('open');
   hideDropdown();
 });
