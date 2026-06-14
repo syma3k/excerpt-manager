@@ -744,6 +744,32 @@
       .cards-list { padding: 10px; gap: 10px; }
       .card { width: 100%; }
 
+      /* Reference cards take full width with tighter padding */
+      .refs-list { padding: 10px; gap: 8px; }
+      .ref-card {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+      }
+      .ref-badge { align-self: flex-start; }
+      .ref-title, .ref-author, .ref-meta, .ref-note {
+        overflow-wrap: break-word;
+        word-break: break-word;
+      }
+      .ref-actions {
+        align-self: stretch;
+        flex-wrap: wrap;
+      }
+      .ref-actions .btn {
+        min-height: 44px;
+        min-width: 44px;
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
       /* No hover on touch devices: keep actions visible */
       .card-actions { opacity: 1; }
 
