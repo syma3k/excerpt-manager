@@ -528,6 +528,101 @@
       padding-top: 14px;
     }
 
+    /* ── Modal split view (browse & link panel) ── */
+    .modal.has-browse {
+      padding: 0;
+      overflow: hidden;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0;
+      transition: max-width .2s ease;
+    }
+    .modal.has-browse .modal-main-col {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .modal.has-browse.split-open { max-width: 1040px; }
+    .modal.has-browse.split-open .modal-main-col {
+      flex: 0 0 560px;
+      max-width: 560px;
+      border-right: 1px solid var(--border);
+    }
+    .modal-browse-col {
+      display: none;
+      flex: 1 1 auto;
+      min-width: 380px;
+      padding: 24px;
+      overflow-y: auto;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal.has-browse.split-open .modal-browse-col { display: flex; }
+
+    .browse-toggle-btn { align-self: flex-start; }
+
+    .browse-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .browse-title { font-size: 14px; font-weight: 700; }
+
+    .browse-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .browse-filter-group { display: flex; flex-direction: column; gap: 5px; }
+    .browse-filter-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .browse-sort-select { max-width: 240px; }
+
+    .browse-grid {
+      flex: 1;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-content: start;
+    }
+    .browse-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: background .12s, border-color .12s;
+    }
+    .browse-card:hover { border-color: var(--accent); }
+    .browse-card.linked { background: #eef4ff; border-color: var(--accent); }
+    .browse-card-head { display: flex; align-items: center; justify-content: space-between; }
+    .browse-card-check { display: none; color: var(--accent); font-weight: 700; font-size: 13px; }
+    .browse-card.linked .browse-card-check { display: inline; }
+    .browse-card-body {
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text);
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: pre-wrap;
+    }
+    .browse-card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .browse-empty { grid-column: 1 / -1; text-align: center; color: var(--muted); font-size: 12px; padding: 24px; }
+
     /* Export */
     .export-area {
       width: 100%;
@@ -813,6 +908,22 @@
       .search-input, .filter-select, .tag-input-field, .link-search-input {
         font-size: 16px;
       }
+
+      /* Browse panel (split view): full-screen swap instead of side-by-side */
+      .modal.has-browse.split-open {
+        max-width: 100%;
+        flex-direction: column;
+      }
+      .modal.has-browse.split-open .modal-main-col { display: none; }
+      .modal.has-browse.split-open .modal-browse-col {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 auto;
+        border-right: none;
+        padding: 16px;
+      }
+      .browse-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -895,50 +1006,86 @@
 
 <!-- ══ CARD MODAL ══ -->
 <div class="modal-overlay" id="card-modal">
-  <div class="modal">
-    <div class="modal-title" id="card-modal-title">カード作成</div>
-    <div class="form-body">
-      <div class="form-group">
-        <label class="form-label">引用元文献<span class="req">*</span></label>
-        <select class="form-select" id="c-ref"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">引用文<span class="req">*</span></label>
-        <textarea class="form-textarea quote" id="c-quote" placeholder="引用テキストを入力…"></textarea>
-      </div>
-      <div class="form-row">
+  <div class="modal has-browse" id="card-modal-box">
+    <div class="modal-main-col">
+      <div class="modal-title" id="card-modal-title">カード作成</div>
+      <div class="form-body">
         <div class="form-group">
-          <label class="form-label">ページ</label>
-          <input type="text" class="form-input" id="c-page" placeholder="例: 42、42–43">
+          <label class="form-label">引用元文献<span class="req">*</span></label>
+          <select class="form-select" id="c-ref"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">引用文<span class="req">*</span></label>
+          <textarea class="form-textarea quote" id="c-quote" placeholder="引用テキストを入力…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ページ</label>
+            <input type="text" class="form-input" id="c-page" placeholder="例: 42、42–43">
+          </div>
+          <div class="form-group" style="position:relative">
+            <label class="form-label">タグ</label>
+            <div class="tag-widget" id="tag-widget">
+              <input type="text" class="tag-input-field" id="tag-field" placeholder="入力→ Enter で追加">
+            </div>
+            <div class="tag-dropdown" id="tag-dropdown"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">メモ</label>
+          <textarea class="form-textarea" id="c-notes" placeholder="解釈・備考など…"></textarea>
         </div>
         <div class="form-group" style="position:relative">
-          <label class="form-label">タグ</label>
-          <div class="tag-widget" id="tag-widget">
-            <input type="text" class="tag-input-field" id="tag-field" placeholder="入力→ Enter で追加">
+          <label class="form-label">関連カード</label>
+          <div class="link-widget" id="card-link-widget">
+            <div class="link-selected-list" id="card-link-list"></div>
+            <div class="link-search-wrap">
+              <input type="text" class="link-search-input" id="card-link-input" placeholder="キーワードでカードを検索…">
+              <div class="link-dropdown" id="card-link-dropdown"></div>
+            </div>
           </div>
-          <div class="tag-dropdown" id="tag-dropdown"></div>
+          <button type="button" class="btn btn-ghost btn-sm browse-toggle-btn" id="card-browse-toggle">🔍 一覧から探す</button>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">メモ</label>
-        <textarea class="form-textarea" id="c-notes" placeholder="解釈・備考など…"></textarea>
-      </div>
-      <div class="form-group" style="position:relative">
-        <label class="form-label">関連カード</label>
-        <div class="link-widget" id="card-link-widget">
-          <div class="link-selected-list" id="card-link-list"></div>
-          <div class="link-search-wrap">
-            <input type="text" class="link-search-input" id="card-link-input" placeholder="キーワードでカードを検索…">
-            <div class="link-dropdown" id="card-link-dropdown"></div>
-          </div>
-        </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="card-save">保存</button>
+        <button class="btn btn-primary" id="card-save-continue" style="display:none">保存して続ける</button>
+        <button class="btn btn-primary" id="card-save-close" style="display:none">保存して閉じる</button>
+        <button class="btn btn-ghost" id="card-cancel">キャンセル</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" id="card-save">保存</button>
-      <button class="btn btn-primary" id="card-save-continue" style="display:none">保存して続ける</button>
-      <button class="btn btn-primary" id="card-save-close" style="display:none">保存して閉じる</button>
-      <button class="btn btn-ghost" id="card-cancel">キャンセル</button>
+    <div class="modal-browse-col" id="card-browse-col">
+      <div class="browse-header">
+        <span class="browse-title">一覧からリンクを探す</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="card-browse-close">✕ 閉じる</button>
+      </div>
+      <div class="browse-filters">
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">種別</div>
+          <div class="tag-filter-list" id="card-browse-type-chips">
+            <span class="tag-chip active" data-type="all">すべて</span>
+            <span class="tag-chip" data-type="excerpt">抜書き</span>
+            <span class="tag-chip" data-type="idea">アイデア</span>
+          </div>
+        </div>
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">タグ</div>
+          <div class="tag-filter-list" id="card-browse-tag-chips"></div>
+        </div>
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">文献</div>
+          <div class="tag-filter-list" id="card-browse-ref-chips"></div>
+        </div>
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">並び替え</div>
+          <select class="form-select browse-sort-select" id="card-browse-sort">
+            <option value="tag">タグ一致度順</option>
+            <option value="updated">更新日順（新しい順）</option>
+            <option value="created">作成日順（新しい順）</option>
+          </select>
+        </div>
+      </div>
+      <div class="browse-grid" id="card-browse-grid"></div>
     </div>
   </div>
 </div>
@@ -1088,34 +1235,70 @@
 
 <!-- ══ IDEA CARD MODAL ══ -->
 <div class="modal-overlay" id="idea-modal">
-  <div class="modal">
-    <div class="modal-title" id="idea-modal-title">アイデアを追加</div>
-    <div class="form-body">
-      <div class="form-group">
-        <label class="form-label">アイデア本文<span class="req">*</span></label>
-        <textarea class="form-textarea" id="idea-body" placeholder="アイデアを入力…" style="min-height:140px"></textarea>
-      </div>
-      <div class="form-group" style="position:relative">
-        <label class="form-label">タグ</label>
-        <div class="tag-widget" id="idea-tag-widget">
-          <input type="text" class="tag-input-field" id="idea-tag-field" placeholder="入力→ Enter で追加">
+  <div class="modal has-browse" id="idea-modal-box">
+    <div class="modal-main-col">
+      <div class="modal-title" id="idea-modal-title">アイデアを追加</div>
+      <div class="form-body">
+        <div class="form-group">
+          <label class="form-label">アイデア本文<span class="req">*</span></label>
+          <textarea class="form-textarea" id="idea-body" placeholder="アイデアを入力…" style="min-height:140px"></textarea>
         </div>
-        <div class="tag-dropdown" id="idea-tag-dropdown"></div>
-      </div>
-      <div class="form-group" style="position:relative">
-        <label class="form-label">関連カード</label>
-        <div class="link-widget" id="idea-link-widget">
-          <div class="link-selected-list" id="idea-link-list"></div>
-          <div class="link-search-wrap">
-            <input type="text" class="link-search-input" id="idea-link-input" placeholder="キーワードでカードを検索…">
-            <div class="link-dropdown" id="idea-link-dropdown"></div>
+        <div class="form-group" style="position:relative">
+          <label class="form-label">タグ</label>
+          <div class="tag-widget" id="idea-tag-widget">
+            <input type="text" class="tag-input-field" id="idea-tag-field" placeholder="入力→ Enter で追加">
           </div>
+          <div class="tag-dropdown" id="idea-tag-dropdown"></div>
         </div>
+        <div class="form-group" style="position:relative">
+          <label class="form-label">関連カード</label>
+          <div class="link-widget" id="idea-link-widget">
+            <div class="link-selected-list" id="idea-link-list"></div>
+            <div class="link-search-wrap">
+              <input type="text" class="link-search-input" id="idea-link-input" placeholder="キーワードでカードを検索…">
+              <div class="link-dropdown" id="idea-link-dropdown"></div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm browse-toggle-btn" id="idea-browse-toggle">🔍 一覧から探す</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="idea-cancel">キャンセル</button>
+        <button class="btn btn-primary" id="idea-save">保存</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="idea-cancel">キャンセル</button>
-      <button class="btn btn-primary" id="idea-save">保存</button>
+    <div class="modal-browse-col" id="idea-browse-col">
+      <div class="browse-header">
+        <span class="browse-title">一覧からリンクを探す</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="idea-browse-close">✕ 閉じる</button>
+      </div>
+      <div class="browse-filters">
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">種別</div>
+          <div class="tag-filter-list" id="idea-browse-type-chips">
+            <span class="tag-chip active" data-type="all">すべて</span>
+            <span class="tag-chip" data-type="excerpt">抜書き</span>
+            <span class="tag-chip" data-type="idea">アイデア</span>
+          </div>
+        </div>
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">タグ</div>
+          <div class="tag-filter-list" id="idea-browse-tag-chips"></div>
+        </div>
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">文献</div>
+          <div class="tag-filter-list" id="idea-browse-ref-chips"></div>
+        </div>
+        <div class="browse-filter-group">
+          <div class="browse-filter-label">並び替え</div>
+          <select class="form-select browse-sort-select" id="idea-browse-sort">
+            <option value="tag">タグ一致度順</option>
+            <option value="updated">更新日順（新しい順）</option>
+            <option value="created">作成日順（新しい順）</option>
+          </select>
+        </div>
+      </div>
+      <div class="browse-grid" id="idea-browse-grid"></div>
     </div>
   </div>
 </div>
@@ -1190,6 +1373,7 @@ function migrateCard(c) {
   if (!c.type) c.type = 'excerpt';
   if (!c.linkedCardIds) c.linkedCardIds = [];
   if (c.ideaBody === undefined) c.ideaBody = '';
+  if (!c.updatedAt) c.updatedAt = c.createdAt || new Date().toISOString();
   return c;
 }
 
@@ -1463,14 +1647,15 @@ const DB = (() => {
       await save();
     },
     async addEx(data) {
-      const rec = { ...data, id: uid(), createdAt: new Date().toISOString() };
+      const now = new Date().toISOString();
+      const rec = { ...data, id: uid(), createdAt: now, updatedAt: now };
       excerpts.unshift(rec);
       await save();
       return rec;
     },
     async updateEx(id, data) {
       const i = excerpts.findIndex(e => e.id === id);
-      if (i >= 0) excerpts[i] = { ...excerpts[i], ...data };
+      if (i >= 0) excerpts[i] = { ...excerpts[i], ...data, updatedAt: new Date().toISOString() };
       await save();
     },
     async deleteEx(id) {
@@ -1573,6 +1758,11 @@ const S = {
   expandedLinks: new Set(),
   linkPrefix: '',
   fromRefs: false,
+  browseOpen: false,
+  browseTypeFilter: 'all',
+  browseTagFilter: new Set(),
+  browseRefFilter: new Set(),
+  browseSort: 'tag',
 };
 
 /* ─── Tab switching ─── */
@@ -1816,6 +2006,7 @@ function openCardModal(editId, presetRefId, fromRefs) {
   S.editExId = editId || null;
   S.cardTags = [];
   S.fromRefs = !!fromRefs;
+  resetBrowsePanel('card');
 
   const refs   = DB.getRefs();
   const refSel = document.getElementById('c-ref');
@@ -1875,6 +2066,7 @@ function renderTagWidget() {
     });
     widget.insertBefore(span, field);
   });
+  refreshBrowseGridIfOpen();
 }
 
 function addTag(raw) {
@@ -2323,13 +2515,29 @@ function renderLinkWidget() {
     btn.className = 'tag-x';
     btn.type = 'button';
     btn.textContent = '×';
-    btn.addEventListener('click', () => {
-      S.cardLinks = S.cardLinks.filter(x => x !== id);
-      renderLinkWidget();
-    });
+    btn.addEventListener('click', () => removeCardLink(id));
     div.appendChild(btn);
     el.appendChild(div);
   });
+}
+
+/* Add/remove a linked card id, keeping the link chips and browse grid in sync */
+function addCardLink(id) {
+  if (!S.cardLinks.includes(id)) S.cardLinks.push(id);
+  renderLinkWidget();
+  syncBrowseCardState(id, true);
+}
+function removeCardLink(id) {
+  S.cardLinks = S.cardLinks.filter(x => x !== id);
+  renderLinkWidget();
+  syncBrowseCardState(id, false);
+}
+function syncBrowseCardState(id, linked) {
+  if (!S.browseOpen) return;
+  const grid = document.getElementById(`${S.linkPrefix}-browse-grid`);
+  if (!grid) return;
+  const el = grid.querySelector(`.browse-card[data-id="${CSS.escape(id)}"]`);
+  if (el) el.classList.toggle('linked', linked);
 }
 
 function hideLinkDropdown() {
@@ -2366,9 +2574,8 @@ function showLinkDropdown(q) {
   el.querySelectorAll('.link-drop-item').forEach(item => {
     item.addEventListener('mousedown', ev => {
       ev.preventDefault();
-      if (!S.cardLinks.includes(item.dataset.id)) S.cardLinks.push(item.dataset.id);
+      addCardLink(item.dataset.id);
       document.getElementById(`${p}-link-input`).value = '';
-      renderLinkWidget();
       hideLinkDropdown();
     });
   });
@@ -2381,6 +2588,170 @@ function toggleInlineExpand(parentId, childId) {
   else S.expandedLinks.add(key);
   renderCards();
 }
+
+/* ─── Browse panel (split view: browse all cards & link) ─── */
+function resetBrowsePanel(prefix) {
+  S.browseOpen = false;
+  S.browseTypeFilter = 'all';
+  S.browseTagFilter = new Set();
+  S.browseRefFilter = new Set();
+  S.browseSort = 'tag';
+  const box = document.getElementById(`${prefix}-modal-box`);
+  if (box) box.classList.remove('split-open');
+  const toggle = document.getElementById(`${prefix}-browse-toggle`);
+  if (toggle) toggle.textContent = '🔍 一覧から探す';
+}
+
+function openBrowsePanel(prefix) {
+  S.browseOpen = true;
+  document.getElementById(`${prefix}-modal-box`).classList.add('split-open');
+  document.getElementById(`${prefix}-browse-toggle`).textContent = '✕ 一覧を閉じる';
+  renderBrowseFilters(prefix);
+  renderBrowseGrid(prefix);
+}
+
+function closeBrowsePanel(prefix) {
+  S.browseOpen = false;
+  document.getElementById(`${prefix}-modal-box`).classList.remove('split-open');
+  document.getElementById(`${prefix}-browse-toggle`).textContent = '🔍 一覧から探す';
+}
+
+function toggleBrowsePanel(prefix) {
+  if (S.browseOpen) closeBrowsePanel(prefix);
+  else openBrowsePanel(prefix);
+}
+
+function refreshBrowseGridIfOpen() {
+  if (S.browseOpen) renderBrowseGrid(S.linkPrefix);
+}
+
+function computeBrowseList() {
+  const editingTags = new Set(S.cardTags);
+  let list = DB.getEx().filter(c => c.id !== S.editExId);
+
+  if (S.browseTypeFilter !== 'all') {
+    list = list.filter(c =>
+      S.browseTypeFilter === 'excerpt'
+        ? (!c.type || c.type === 'excerpt')
+        : c.type === S.browseTypeFilter
+    );
+  }
+  if (S.browseTagFilter.size > 0)
+    list = list.filter(c => [...S.browseTagFilter].every(t => (c.tags || []).includes(t)));
+  if (S.browseRefFilter.size > 0)
+    list = list.filter(c => S.browseRefFilter.has(c.referenceId));
+
+  const scored = list.map(c => ({
+    c,
+    tagMatch: (c.tags || []).filter(t => editingTags.has(t)).length,
+  }));
+
+  scored.sort((a, b) => {
+    if (S.browseSort === 'tag') {
+      if (b.tagMatch !== a.tagMatch) return b.tagMatch - a.tagMatch;
+      return (b.c.updatedAt || b.c.createdAt || '').localeCompare(a.c.updatedAt || a.c.createdAt || '');
+    }
+    if (S.browseSort === 'updated')
+      return (b.c.updatedAt || b.c.createdAt || '').localeCompare(a.c.updatedAt || a.c.createdAt || '');
+    return (b.c.createdAt || '').localeCompare(a.c.createdAt || '');
+  });
+
+  return scored.map(x => x.c);
+}
+
+function renderBrowseFilters(prefix) {
+  document.querySelectorAll(`#${prefix}-browse-type-chips .tag-chip`).forEach(c => {
+    c.classList.toggle('active', c.dataset.type === S.browseTypeFilter);
+  });
+
+  const tags = DB.allTags();
+  const tagEl = document.getElementById(`${prefix}-browse-tag-chips`);
+  tagEl.innerHTML = tags.length
+    ? tags.map(t => `<span class="tag-chip${S.browseTagFilter.has(t) ? ' active' : ''}" data-tag="${esc(t)}">#${esc(t)}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--muted)">タグなし</span>';
+
+  const refs = DB.getRefs();
+  const refEl = document.getElementById(`${prefix}-browse-ref-chips`);
+  refEl.innerHTML = refs.length
+    ? refs.map(r => `<span class="tag-chip${S.browseRefFilter.has(r.id) ? ' active' : ''}" data-ref="${esc(r.id)}">${esc(r.author)}『${esc(r.title)}』</span>`).join('')
+    : '<span style="font-size:12px;color:var(--muted)">文献なし</span>';
+
+  document.getElementById(`${prefix}-browse-sort`).value = S.browseSort;
+}
+
+function renderBrowseGrid(prefix) {
+  const list = computeBrowseList();
+  const el = document.getElementById(`${prefix}-browse-grid`);
+
+  if (!list.length) {
+    el.innerHTML = `<div class="browse-empty">該当するカードがありません。</div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(c => {
+    const isIdea = c.type === 'idea';
+    const badge = isIdea
+      ? '<span class="card-type-badge idea">アイデア</span>'
+      : '<span class="card-type-badge excerpt">抜書き</span>';
+    const bodyText = isIdea ? (c.ideaBody || '') : (c.quote || '');
+    const tags = (c.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('');
+    const linked = S.cardLinks.includes(c.id);
+    return `<div class="browse-card${linked ? ' linked' : ''}" data-id="${esc(c.id)}">
+      <div class="browse-card-head">${badge}<span class="browse-card-check">✓</span></div>
+      <div class="browse-card-body">${esc(bodyText)}</div>
+      ${tags ? `<div class="browse-card-tags">${tags}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+['card', 'idea'].forEach(p => {
+  document.getElementById(`${p}-browse-toggle`).addEventListener('click', () => {
+    S.linkPrefix = p;
+    toggleBrowsePanel(p);
+  });
+  document.getElementById(`${p}-browse-close`).addEventListener('click', () => closeBrowsePanel(p));
+
+  document.getElementById(`${p}-browse-type-chips`).addEventListener('click', e => {
+    const chip = e.target.closest('.tag-chip');
+    if (!chip) return;
+    S.browseTypeFilter = chip.dataset.type;
+    document.querySelectorAll(`#${p}-browse-type-chips .tag-chip`).forEach(c => {
+      c.classList.toggle('active', c.dataset.type === S.browseTypeFilter);
+    });
+    renderBrowseGrid(p);
+  });
+
+  document.getElementById(`${p}-browse-tag-chips`).addEventListener('click', e => {
+    const chip = e.target.closest('.tag-chip');
+    if (!chip || !chip.dataset.tag) return;
+    const t = chip.dataset.tag;
+    S.browseTagFilter.has(t) ? S.browseTagFilter.delete(t) : S.browseTagFilter.add(t);
+    chip.classList.toggle('active');
+    renderBrowseGrid(p);
+  });
+
+  document.getElementById(`${p}-browse-ref-chips`).addEventListener('click', e => {
+    const chip = e.target.closest('.tag-chip');
+    if (!chip || !chip.dataset.ref) return;
+    const id = chip.dataset.ref;
+    S.browseRefFilter.has(id) ? S.browseRefFilter.delete(id) : S.browseRefFilter.add(id);
+    chip.classList.toggle('active');
+    renderBrowseGrid(p);
+  });
+
+  document.getElementById(`${p}-browse-sort`).addEventListener('change', e => {
+    S.browseSort = e.target.value;
+    renderBrowseGrid(p);
+  });
+
+  document.getElementById(`${p}-browse-grid`).addEventListener('click', e => {
+    const cardEl = e.target.closest('.browse-card');
+    if (!cardEl) return;
+    const id = cardEl.dataset.id;
+    if (S.cardLinks.includes(id)) removeCardLink(id);
+    else addCardLink(id);
+  });
+});
 
 /* ─── Type filter chips ─── */
 document.getElementById('type-filter-chips').addEventListener('click', e => {
@@ -2409,6 +2780,7 @@ function renderIdeaTagWidget() {
     });
     widget.insertBefore(span, field);
   });
+  refreshBrowseGridIfOpen();
 }
 
 function addIdeaTag(raw) {
@@ -2448,6 +2820,7 @@ document.getElementById('idea-tag-widget').addEventListener('click', () => docum
 function openIdeaModal(editId) {
   S.editExId  = editId || null;
   S.cardTags  = [];
+  resetBrowsePanel('idea');
 
   if (editId) {
     const card = DB.getEx().find(c => c.id === editId);
